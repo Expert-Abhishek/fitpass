@@ -9,6 +9,17 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import {
+  Flame,
+  Activity,
+  HeartPulse,
+  Dumbbell,
+  Sparkles,
+  LogOut,
+  ChevronRight,
+  TrendingUp,
+  Zap,
+} from 'lucide-react-native';
 import { useAuthStore } from '../../src/stores/authStore';
 
 export default function DashboardScreen() {
@@ -28,159 +39,139 @@ export default function DashboardScreen() {
     ]);
   };
 
-  const getGoalDisplay = (goal?: string) => {
+  const getGoalInfo = (goal?: string) => {
     switch (goal) {
       case 'WEIGHT_LOSS':
-        return 'Weight Loss Deficit';
+        return { label: 'Fat Loss Deficit', color: '#F59E0B', icon: Flame };
       case 'MUSCLE_GAIN':
-        return 'Hypertrophy Surplus';
+        return { label: 'Hypertrophy Surplus', color: '#10B981', icon: Dumbbell };
       case 'MAINTENANCE':
-        return 'Caloric Maintenance';
+        return { label: 'Metabolic Balance', color: '#06B6D4', icon: HeartPulse };
       default:
-        return 'General Fitness';
+        return { label: 'Custom Blueprint', color: '#818CF8', icon: Zap };
     }
   };
 
+  const goalInfo = getGoalInfo(latestAssessment?.target_goal);
+
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Top App Bar */}
-        <View style={styles.appBar}>
-          <View>
-            <Text style={styles.appTitle}>FITPASS CORE</Text>
-            <Text style={styles.userGreeting}>
-              Hello, {profile?.full_name || authUser?.email?.split('@')[0] || 'Athlete'}
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <View style={styles.mobileContainer}>
+          {/* Top App Bar */}
+          <View style={styles.appBar}>
+            <View style={styles.brandGroup}>
+              <View style={styles.brandIcon}>
+                <Flame size={20} color="#10B981" />
+              </View>
+              <View>
+                <Text style={styles.brandTitle}>FITPASS CORE</Text>
+                <Text style={styles.userName}>
+                  {profile?.full_name || authUser?.email?.split('@')[0] || 'Athlete'}
+                </Text>
+              </View>
+            </View>
+
+            <TouchableOpacity
+              onPress={handleSignOut}
+              style={styles.logoutBtn}
+              activeOpacity={0.8}
+            >
+              <LogOut size={16} color="#94A3B8" />
+            </TouchableOpacity>
+          </View>
+
+          {/* Motivational Status Card */}
+          <View style={styles.statusCard}>
+            <View style={styles.statusCardTop}>
+              <View style={styles.statusBadgeGroup}>
+                <Sparkles size={13} color="#34D399" />
+                <Text style={styles.statusBadgeText}>ACTIVE BLUEPRINT CALIBRATED</Text>
+              </View>
+              <View style={[styles.goalTag, { backgroundColor: '#11151F' }]}>
+                <Text style={[styles.goalTagText, { color: goalInfo.color }]}>
+                  {goalInfo.label}
+                </Text>
+              </View>
+            </View>
+            <Text style={styles.statusDesc}>
+              Your personalized metabolic targets and workouts are synchronized with Supabase PostgreSQL.
             </Text>
           </View>
+
+          {/* Biometrics Summary Card */}
+          <View style={styles.metricsHeroCard}>
+            <Text style={styles.cardHeaderTitle}>METABOLIC SNAPSHOT</Text>
+
+            <View style={styles.metricsGrid}>
+              {/* BMR Card */}
+              <View style={styles.metricGridItem}>
+                <View style={styles.metricGridHeader}>
+                  <Flame size={16} color="#10B981" />
+                  <Text style={styles.metricGridTag}>RESTING BURN</Text>
+                </View>
+                <Text style={styles.metricGridValue}>
+                  {latestAssessment?.bmr ? Math.round(Number(latestAssessment.bmr)) : '--'}
+                </Text>
+                <Text style={styles.metricGridUnit}>kcal / day base</Text>
+              </View>
+
+              {/* BMI Card */}
+              <View style={styles.metricGridItem}>
+                <View style={styles.metricGridHeader}>
+                  <Activity size={16} color="#38BDF8" />
+                  <Text style={styles.metricGridTag}>BMI SCORE</Text>
+                </View>
+                <Text style={styles.metricGridValue}>
+                  {latestAssessment?.bmi ? Number(latestAssessment.bmi).toFixed(1) : '--'}
+                </Text>
+                <Text style={[styles.metricGridUnit, { color: '#34D399', fontWeight: '800' }]}>
+                  Quetelet Index
+                </Text>
+              </View>
+            </View>
+
+            {/* Quick Metrics Chips */}
+            <View style={styles.chipsRow}>
+              <View style={styles.chip}>
+                <Text style={styles.chipLabel}>Height:</Text>
+                <Text style={styles.chipValue}>{latestAssessment?.height_cm} cm</Text>
+              </View>
+              <View style={styles.chip}>
+                <Text style={styles.chipLabel}>Weight:</Text>
+                <Text style={styles.chipValue}>{latestAssessment?.weight_kg} kg</Text>
+              </View>
+              <View style={styles.chip}>
+                <Text style={styles.chipLabel}>Sex:</Text>
+                <Text style={styles.chipValue}>{latestAssessment?.gender}</Text>
+              </View>
+              <View style={styles.chip}>
+                <Text style={styles.chipLabel}>Age:</Text>
+                <Text style={styles.chipValue}>{latestAssessment?.age} yrs</Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Quick Actions */}
+          <Text style={styles.cardHeaderTitle}>ONBOARDING ACTIONS</Text>
+
           <TouchableOpacity
-            style={styles.signOutButton}
-            onPress={handleSignOut}
-            activeOpacity={0.7}
+            onPress={() => router.push('/(onboarding)/assessment')}
+            style={styles.actionCard}
+            activeOpacity={0.85}
           >
-            <Text style={styles.signOutButtonText}>Sign Out</Text>
+            <View style={styles.actionLeft}>
+              <View style={styles.actionIconBox}>
+                <TrendingUp size={18} color="#10B981" />
+              </View>
+              <View>
+                <Text style={styles.actionTitle}>Recalibrate Biometrics</Text>
+                <Text style={styles.actionSubtitle}>Update your weight, height, or goal</Text>
+              </View>
+            </View>
+            <ChevronRight size={18} color="#64748B" />
           </TouchableOpacity>
         </View>
-
-        {/* Status Chip */}
-        <View style={styles.statusBadge}>
-          <View style={styles.statusDot} />
-          <Text style={styles.statusText}>AUTHENTICATED & ONBOARDED • WEEKS 1 & 2 READY</Text>
-        </View>
-
-        {/* Biometrics Assessment Summary Card */}
-        <View style={styles.metricHeroCard}>
-          <View style={styles.metricHeroHeader}>
-            <Text style={styles.metricHeroTitle}>ACTIVE BIOMETRIC BASELINE</Text>
-            <View style={styles.goalPill}>
-              <Text style={styles.goalPillText}>
-                {getGoalDisplay(latestAssessment?.target_goal)}
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.metricStatsRow}>
-            <View style={styles.statBox}>
-              <Text style={styles.statLabel}>BODY MASS INDEX</Text>
-              <Text style={styles.statValue}>
-                {latestAssessment?.bmi ? Number(latestAssessment.bmi).toFixed(1) : '--'}
-              </Text>
-              <Text style={styles.statSub}>Quetelet Index</Text>
-            </View>
-
-            <View style={styles.statDivider} />
-
-            <View style={styles.statBox}>
-              <Text style={styles.statLabel}>BASAL METABOLIC RATE</Text>
-              <Text style={styles.statValue}>
-                {latestAssessment?.bmr ? Math.round(Number(latestAssessment.bmr)) : '--'}
-              </Text>
-              <Text style={styles.statSub}>kcal / day base</Text>
-            </View>
-          </View>
-
-          {/* Detailed stats chips */}
-          <View style={styles.chipsContainer}>
-            <View style={styles.detailChip}>
-              <Text style={styles.detailChipLabel}>Height:</Text>
-              <Text style={styles.detailChipValue}>{latestAssessment?.height_cm} cm</Text>
-            </View>
-            <View style={styles.detailChip}>
-              <Text style={styles.detailChipLabel}>Weight:</Text>
-              <Text style={styles.detailChipValue}>{latestAssessment?.weight_kg} kg</Text>
-            </View>
-            <View style={styles.detailChip}>
-              <Text style={styles.detailChipLabel}>Sex:</Text>
-              <Text style={styles.detailChipValue}>{latestAssessment?.gender}</Text>
-            </View>
-            <View style={styles.detailChip}>
-              <Text style={styles.detailChipLabel}>Age:</Text>
-              <Text style={styles.detailChipValue}>{latestAssessment?.age} yrs</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Architecture Modules Verification Card */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>SYSTEM MODULES</Text>
-        </View>
-
-        <View style={styles.modulesCard}>
-          <View style={styles.moduleRow}>
-            <View style={styles.moduleIconContainer}>
-              <Text style={styles.moduleIconText}>TS</Text>
-            </View>
-            <View style={styles.moduleInfo}>
-              <Text style={styles.moduleName}>@fitness/types</Text>
-              <Text style={styles.moduleDesc}>Shared domain entities & Supabase DDL types</Text>
-            </View>
-            <View style={styles.badgeSuccess}>
-              <Text style={styles.badgeSuccessText}>LINKED</Text>
-            </View>
-          </View>
-
-          <View style={styles.moduleSeparator} />
-
-          <View style={styles.moduleRow}>
-            <View style={styles.moduleIconContainer}>
-              <Text style={styles.moduleIconText}>FX</Text>
-            </View>
-            <View style={styles.moduleInfo}>
-              <Text style={styles.moduleName}>@fitness/utils</Text>
-              <Text style={styles.moduleDesc}>Mifflin-St Jeor & BMI calculation engines</Text>
-            </View>
-            <View style={styles.badgeSuccess}>
-              <Text style={styles.badgeSuccessText}>LINKED</Text>
-            </View>
-          </View>
-
-          <View style={styles.moduleSeparator} />
-
-          <View style={styles.moduleRow}>
-            <View style={styles.moduleIconContainer}>
-              <Text style={styles.moduleIconText}>PG</Text>
-            </View>
-            <View style={styles.moduleInfo}>
-              <Text style={styles.moduleName}>Supabase PostgreSQL + RLS</Text>
-              <Text style={styles.moduleDesc}>Auth triggers, cascade constraints & secure policies</Text>
-            </View>
-            <View style={styles.badgeSuccess}>
-              <Text style={styles.badgeSuccessText}>ACTIVE</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Quick Actions */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>ACTIONS</Text>
-        </View>
-
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => router.push('/(onboarding)/assessment')}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.actionButtonText}>Recalibrate Biometric Assessment</Text>
-        </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
   );
@@ -189,239 +180,285 @@ export default function DashboardScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#090D16',
+    backgroundColor: '#161B26',
   },
   scrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 40,
+    flexGrow: 1,
+    paddingVertical: 20,
+    paddingHorizontal: 16,
+  },
+  mobileContainer: {
+    width: '100%',
+    maxWidth: 440,
+    marginHorizontal: 'auto',
   },
   appBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 20,
   },
-  appTitle: {
-    color: '#6366F1',
-    fontSize: 12,
-    fontWeight: '800',
-    letterSpacing: 1.5,
-  },
-  userGreeting: {
-    color: '#F8FAFC',
-    fontSize: 22,
-    fontWeight: '800',
-    marginTop: 2,
-  },
-  signOutButton: {
-    backgroundColor: '#1E293B',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#334155',
-  },
-  signOutButtonText: {
-    color: '#CBD5E1',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  statusBadge: {
+  brandGroup: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(16, 185, 129, 0.1)',
-    borderColor: 'rgba(16, 185, 129, 0.25)',
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    marginBottom: 20,
-    gap: 8,
+    gap: 10,
   },
-  statusDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#10B981',
+  brandIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 14,
+    backgroundColor: '#161B26',
+    borderTopWidth: 1.5,
+    borderLeftWidth: 1.5,
+    borderTopColor: 'rgba(255, 255, 255, 0.12)',
+    borderLeftColor: 'rgba(255, 255, 255, 0.08)',
+    borderBottomWidth: 2,
+    borderRightWidth: 2,
+    borderBottomColor: '#090C12',
+    borderRightColor: '#090C12',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000000',
+    shadowOffset: { width: 3, height: 3 },
+    shadowOpacity: 0.5,
+    shadowRadius: 6,
   },
-  statusText: {
-    color: '#34D399',
+  brandTitle: {
+    color: '#64748B',
     fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 0.5,
+    fontWeight: '800',
+    letterSpacing: 1,
   },
-  metricHeroCard: {
-    backgroundColor: '#131B2E',
-    borderRadius: 18,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: '#1E293B',
-    marginBottom: 24,
+  userName: {
+    color: '#F8FAFC',
+    fontSize: 20,
+    fontWeight: '900',
   },
-  metricHeroHeader: {
+  logoutBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 14,
+    backgroundColor: '#161B26',
+    borderTopWidth: 1.5,
+    borderLeftWidth: 1.5,
+    borderTopColor: 'rgba(255, 255, 255, 0.12)',
+    borderLeftColor: 'rgba(255, 255, 255, 0.08)',
+    borderBottomWidth: 2,
+    borderRightWidth: 2,
+    borderBottomColor: '#090C12',
+    borderRightColor: '#090C12',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000000',
+    shadowOffset: { width: 3, height: 3 },
+    shadowOpacity: 0.5,
+    shadowRadius: 6,
+  },
+  statusCard: {
+    backgroundColor: '#161B26',
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 20,
+    borderTopWidth: 1.5,
+    borderLeftWidth: 1.5,
+    borderTopColor: 'rgba(52, 211, 153, 0.3)',
+    borderLeftColor: 'rgba(52, 211, 153, 0.2)',
+    borderBottomWidth: 2,
+    borderRightWidth: 2,
+    borderBottomColor: '#064E3B',
+    borderRightColor: '#064E3B',
+    shadowColor: '#000000',
+    shadowOffset: { width: 5, height: 5 },
+    shadowOpacity: 0.5,
+    shadowRadius: 10,
+    elevation: 4,
+  },
+  statusCardTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 6,
   },
-  metricHeroTitle: {
-    color: '#64748B',
+  statusBadgeGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  statusBadgeText: {
+    color: '#34D399',
     fontSize: 10,
     fontWeight: '800',
-    letterSpacing: 1,
+    letterSpacing: 0.6,
   },
-  goalPill: {
-    backgroundColor: 'rgba(99, 102, 241, 0.15)',
-    borderColor: 'rgba(99, 102, 241, 0.3)',
-    borderWidth: 1,
-    borderRadius: 20,
+  goalTag: {
     paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  goalPillText: {
-    color: '#818CF8',
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  metricStatsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#090D16',
+    paddingVertical: 3,
     borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
+    borderTopWidth: 1,
+    borderLeftWidth: 1,
+    borderTopColor: '#090C12',
+    borderLeftColor: '#090C12',
+    borderBottomWidth: 1,
+    borderRightWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.06)',
+    borderRightColor: 'rgba(255, 255, 255, 0.06)',
   },
-  statBox: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  statLabel: {
-    color: '#64748B',
-    fontSize: 9,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-    marginBottom: 4,
-  },
-  statValue: {
-    color: '#F8FAFC',
-    fontSize: 28,
+  goalTagText: {
+    fontSize: 10,
     fontWeight: '800',
   },
-  statSub: {
-    color: '#94A3B8',
-    fontSize: 11,
-    marginTop: 4,
+  statusDesc: {
+    color: '#CBD5E1',
+    fontSize: 12,
+    lineHeight: 16,
   },
-  statDivider: {
-    width: 1,
-    height: 48,
-    backgroundColor: '#1E293B',
+  metricsHeroCard: {
+    backgroundColor: '#161B26',
+    borderRadius: 22,
+    padding: 18,
+    marginBottom: 20,
+    borderTopWidth: 1.5,
+    borderLeftWidth: 1.5,
+    borderTopColor: 'rgba(255, 255, 255, 0.1)',
+    borderLeftColor: 'rgba(255, 255, 255, 0.07)',
+    borderBottomWidth: 2,
+    borderRightWidth: 2,
+    borderBottomColor: '#090C12',
+    borderRightColor: '#090C12',
+    shadowColor: '#000000',
+    shadowOffset: { width: 5, height: 5 },
+    shadowOpacity: 0.5,
+    shadowRadius: 10,
   },
-  chipsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  detailChip: {
-    flexDirection: 'row',
-    backgroundColor: '#090D16',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#1E293B',
-    gap: 4,
-  },
-  detailChipLabel: {
+  cardHeaderTitle: {
     color: '#64748B',
     fontSize: 11,
-    fontWeight: '600',
-  },
-  detailChipValue: {
-    color: '#E2E8F0',
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  sectionHeader: {
+    fontWeight: '800',
+    letterSpacing: 0.8,
     marginBottom: 12,
   },
-  sectionTitle: {
-    color: '#64748B',
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 1,
+  metricsGrid: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 14,
   },
-  modulesCard: {
-    backgroundColor: '#131B2E',
+  metricGridItem: {
+    flex: 1,
+    backgroundColor: '#11151F',
+    borderTopWidth: 1.5,
+    borderLeftWidth: 1.5,
+    borderTopColor: '#090C12',
+    borderLeftColor: '#090C12',
+    borderBottomWidth: 1,
+    borderRightWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.06)',
+    borderRightColor: 'rgba(255, 255, 255, 0.06)',
     borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#1E293B',
-    marginBottom: 24,
+    padding: 14,
   },
-  moduleRow: {
+  metricGridHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 6,
-    gap: 12,
+    gap: 6,
+    marginBottom: 6,
   },
-  moduleIconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
-    backgroundColor: 'rgba(99, 102, 241, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(99, 102, 241, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  moduleIconText: {
-    color: '#818CF8',
-    fontSize: 12,
+  metricGridTag: {
+    color: '#64748B',
+    fontSize: 9,
     fontWeight: '800',
+    letterSpacing: 0.5,
   },
-  moduleInfo: {
-    flex: 1,
-  },
-  moduleName: {
+  metricGridValue: {
     color: '#F8FAFC',
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 28,
+    fontWeight: '900',
   },
-  moduleDesc: {
+  metricGridUnit: {
     color: '#94A3B8',
     fontSize: 11,
     marginTop: 2,
   },
-  badgeSuccess: {
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
+  chipsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
   },
-  badgeSuccessText: {
-    color: '#34D399',
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 0.5,
+  chip: {
+    flexDirection: 'row',
+    backgroundColor: '#11151F',
+    borderTopWidth: 1,
+    borderLeftWidth: 1,
+    borderTopColor: '#090C12',
+    borderLeftColor: '#090C12',
+    borderBottomWidth: 1,
+    borderRightWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.06)',
+    borderRightColor: 'rgba(255, 255, 255, 0.06)',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    gap: 4,
   },
-  moduleSeparator: {
-    height: 1,
-    backgroundColor: '#1E293B',
-    marginVertical: 10,
+  chipLabel: {
+    color: '#64748B',
+    fontSize: 11,
+    fontWeight: '600',
   },
-  actionButton: {
-    backgroundColor: '#1E293B',
-    borderWidth: 1,
-    borderColor: '#334155',
-    borderRadius: 12,
-    paddingVertical: 16,
+  chipValue: {
+    color: '#F8FAFC',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  actionCard: {
+    backgroundColor: '#161B26',
+    borderTopWidth: 1.5,
+    borderLeftWidth: 1.5,
+    borderTopColor: 'rgba(255, 255, 255, 0.1)',
+    borderLeftColor: 'rgba(255, 255, 255, 0.07)',
+    borderBottomWidth: 2,
+    borderRightWidth: 2,
+    borderBottomColor: '#090C12',
+    borderRightColor: '#090C12',
+    borderRadius: 18,
+    padding: 16,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+    shadowColor: '#000000',
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 0.5,
+    shadowRadius: 8,
   },
-  actionButtonText: {
+  actionLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  actionIconBox: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: '#11151F',
+    borderTopWidth: 1,
+    borderLeftWidth: 1,
+    borderTopColor: '#090C12',
+    borderLeftColor: '#090C12',
+    borderBottomWidth: 1,
+    borderRightWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.06)',
+    borderRightColor: 'rgba(255, 255, 255, 0.06)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actionTitle: {
     color: '#F8FAFC',
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '800',
+  },
+  actionSubtitle: {
+    color: '#64748B',
+    fontSize: 11,
+    marginTop: 1,
   },
 });

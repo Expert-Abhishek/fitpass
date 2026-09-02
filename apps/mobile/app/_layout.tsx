@@ -1,10 +1,43 @@
 import React, { useEffect } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { ActivityIndicator, StyleSheet, View, Text } from 'react-native';
+import { ActivityIndicator, StyleSheet, View, Text, Platform } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useAuthStore } from '../src/stores/authStore';
 import { supabase } from '../src/lib/supabase';
+
+// Inject Global Autofill & Focus CSS for Web
+if (Platform.OS === 'web' && typeof document !== 'undefined') {
+  const styleId = 'fitpass-web-global-styles';
+  if (!document.getElementById(styleId)) {
+    const style = document.createElement('style');
+    style.id = styleId;
+    style.textContent = `
+      input:-webkit-autofill,
+      input:-webkit-autofill:hover,
+      input:-webkit-autofill:focus,
+      input:-webkit-autofill:active {
+        -webkit-box-shadow: 0 0 0 1000px #11151F inset !important;
+        -webkit-text-fill-color: #F8FAFC !important;
+        caret-color: #10B981 !important;
+        transition: background-color 50000s ease-in-out 0s !important;
+      }
+      input {
+        background-color: transparent !important;
+        color: #F8FAFC !important;
+        outline: none !important;
+        border: none !important;
+      }
+      input:focus {
+        outline: none !important;
+      }
+      * {
+        -webkit-tap-highlight-color: transparent;
+      }
+    `;
+    document.head.appendChild(style);
+  }
+}
 
 export default function RootLayout() {
   const {
@@ -80,7 +113,7 @@ export default function RootLayout() {
     return (
       <View style={styles.loadingContainer}>
         <StatusBar style="light" />
-        <ActivityIndicator size="large" color="#6366F1" />
+        <ActivityIndicator size="large" color="#10B981" />
         <Text style={styles.loadingText}>Initializing Fitness Core...</Text>
       </View>
     );
@@ -92,7 +125,7 @@ export default function RootLayout() {
       <Stack
         screenOptions={{
           headerShown: false,
-          contentStyle: { backgroundColor: '#090D16' },
+          contentStyle: { backgroundColor: '#161B26' },
           animation: 'fade',
         }}
       >
@@ -108,7 +141,7 @@ export default function RootLayout() {
 const styles = StyleSheet.create({
   loadingContainer: {
     flex: 1,
-    backgroundColor: '#090D16',
+    backgroundColor: '#161B26',
     justifyContent: 'center',
     alignItems: 'center',
     gap: 16,

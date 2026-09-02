@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -9,127 +9,403 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Alert,
+  Animated,
+  LayoutChangeEvent,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import {
+  Mail,
+  Lock,
+  User,
+  Sparkles,
+  ArrowRight,
+  Eye,
+  EyeOff,
+  Flame,
+  CheckCircle2,
+  AlertCircle,
+} from 'lucide-react-native';
 import { useAuthStore } from '../../src/stores/authStore';
 
-export default function LoginScreen() {
-  const router = useRouter();
-  const { signInWithPassword, isLoading, error, clearError } = useAuthStore();
+type FieldName = 'fullName' | 'email' | 'password';
 
+interface FieldErrors {
+  fullName?: string;
+  email?: string;
+  password?: string;
+}
+
+export default function AuthScreen() {
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [localError, setLocalError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
-  const handleLogin = async () => {
-    setLocalError(null);
+  // Focus and Validation States
+  const [focusedField, setFocusedField] = useState<FieldName | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [apiError, setApiError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  // Neumorphic Sliding Pill Animation
+  const [switcherWidth, setSwitcherWidth] = useState<number>(0);
+  const slideAnim = useRef(new Animated.Value(0)).current;
+
+  const {
+    signInWithPassword,
+    signUpWithPassword,
+    isLoading,
+    error: serverStoreError,
+    clearError,
+  } = useAuthStore();
+
+  useEffect(() => {
+    Animated.spring(slideAnim, {
+      toValue: isSignUp ? 1 : 0,
+      tension: 38,
+      friction: 9,
+      useNativeDriver: true,
+    }).start();
+  }, [isSignUp]);
+
+  const handleToggleMode = (mode: boolean) => {
+    setIsSignUp(mode);
+    setFieldErrors({});
+    setApiError(null);
+    setSuccessMessage(null);
     clearError();
+  };
+
+  const onSwitcherLayout = (event: LayoutChangeEvent) => {
+    const { width } = event.nativeEvent.layout;
+    setSwitcherWidth(width);
+  };
+
+  const clearFieldError = (field: FieldName) => {
+    if (fieldErrors[field]) {
+      setFieldErrors((prev) => {
+        const next = { ...prev };
+        delete next[field];
+        return next;
+      });
+    }
+    setApiError(null);
+  };
+
+  const validateFields = (): boolean => {
+    const errors: FieldErrors = {};
+
+    if (isSignUp && !fullName.trim()) {
+      errors.fullName = 'Please enter your full name.';
+    }
 
     if (!email.trim()) {
-      setLocalError('Please enter your email address.');
-      return;
+      errors.email = 'Email address is required.';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      errors.email = 'Please enter a valid email address.';
     }
 
     if (!password) {
-      setLocalError('Please enter your password.');
+      errors.password = 'Password is required.';
+    } else if (password.length < 6) {
+      errors.password = 'Password must be at least 6 characters.';
+    }
+
+    setFieldErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleSubmit = async () => {
+    setApiError(null);
+    setSuccessMessage(null);
+    clearError();
+
+    const isValid = validateFields();
+    if (!isValid) {
       return;
     }
 
-    const { error: signInError } = await signInWithPassword(email.trim(), password);
-    if (signInError) {
-      Alert.alert('Authentication Failed', signInError.message);
+    if (isSignUp) {
+      const { error: signUpError, isConfirmed } = await signUpWithPassword(
+        email.trim(),
+        password,
+        fullName.trim()
+      );
+
+      if (signUpError) {
+        setApiError(signUpError.message);
+        return;
+      }
+
+      if (!isConfirmed) {
+        setIsSignUp(false);
+        setPassword('');
+        setSuccessMessage(
+          '🎉 Account created successfully! Please sign in with your password below to start your biometric calibration.'
+        );
+      }
+    } else {
+      const { error: signInError } = await signInWithPassword(email.trim(), password);
+      if (signInError) {
+        setApiError(signInError.message);
+      }
     }
   };
+
+  const getInputContainerStyle = (fieldName: FieldName) => {
+    if (fieldErrors[fieldName]) {
+      return [styles.inputContainer, styles.inputContainerError];
+    }
+    if (focusedField === fieldName) {
+      return [styles.inputContainer, styles.inputContainerFocused];
+    }
+    return styles.inputContainer;
+  };
+
+  const getIconColor = (fieldName: FieldName) => {
+    if (fieldErrors[fieldName]) return '#F87171';
+    if (focusedField === fieldName) return '#10B981';
+    return '#64748B';
+  };
+
+  const activeTopError = apiError || serverStoreError;
+
+  // Compute sliding pill dimensions (account for 6px padding)
+  const tabWidth = switcherWidth > 0 ? (switcherWidth - 12) / 2 : 0;
+  const translateX = slideAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, tabWidth],
+  });
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <KeyboardAvoidingView
-        style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={styles.keyboardContainer}
       >
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Header */}
-          <View style={styles.header}>
-            <View style={styles.badgeContainer}>
-              <Text style={styles.badgeText}>FITPASS ARCHITECTURE</Text>
-            </View>
-            <Text style={styles.title}>Welcome Back</Text>
-            <Text style={styles.subtitle}>
-              Sign in to monitor your biometric assessments, workouts, and nutrition.
-            </Text>
-          </View>
-
-          {/* Form */}
-          <View style={styles.formCard}>
-            {(localError || error) && (
-              <View style={styles.errorBanner}>
-                <Text style={styles.errorBannerText}>{localError || error}</Text>
+          <View style={styles.mobileContainer}>
+            {/* Header Brand */}
+            <View style={styles.header}>
+              <View style={styles.neoExtrudedCircle}>
+                <Flame size={28} color="#10B981" />
               </View>
-            )}
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>EMAIL ADDRESS</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="athlete@domain.com"
-                placeholderTextColor="#475569"
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoCorrect={false}
-                value={email}
-                onChangeText={(val) => {
-                  setEmail(val);
-                  setLocalError(null);
-                }}
-              />
+              <View style={styles.pillBadge}>
+                <Sparkles size={12} color="#34D399" />
+                <Text style={styles.pillBadgeText}>AI METABOLIC COACHING</Text>
+              </View>
+
+              <Text style={styles.title}>
+                {isSignUp ? "Let's build your blueprint" : 'Welcome back, Champ'}
+              </Text>
+              <Text style={styles.subtitle}>
+                {isSignUp
+                  ? 'Personalized nutrition, biometric calibration, and training intelligence.'
+                  : 'Sign in to access your daily calorie targets and workout analytics.'}
+              </Text>
             </View>
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>PASSWORD</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="••••••••••••"
-                placeholderTextColor="#475569"
-                secureTextEntry
-                autoCapitalize="none"
-                value={password}
-                onChangeText={(val) => {
-                  setPassword(val);
-                  setLocalError(null);
-                }}
-              />
-            </View>
-
-            <TouchableOpacity
-              style={[styles.primaryButton, isLoading && styles.buttonDisabled]}
-              onPress={handleLogin}
-              disabled={isLoading}
-              activeOpacity={0.8}
-            >
-              {isLoading ? (
-                <ActivityIndicator color="#FFFFFF" />
-              ) : (
-                <Text style={styles.primaryButtonText}>Sign In</Text>
+            {/* Neumorphic Recessed Track with Extruded Sliding Tile */}
+            <View style={styles.neoRecessedSwitcher} onLayout={onSwitcherLayout}>
+              {tabWidth > 0 && (
+                <Animated.View
+                  style={[
+                    styles.neoSlidingPill,
+                    {
+                      width: tabWidth,
+                      transform: [{ translateX }],
+                    },
+                  ]}
+                />
               )}
-            </TouchableOpacity>
-          </View>
 
-          {/* Footer Link */}
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>Don't have an account?</Text>
-            <TouchableOpacity
-              onPress={() => {
-                clearError();
-                router.push('/(auth)/register');
-              }}
-            >
-              <Text style={styles.footerLink}>Create Account</Text>
-            </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => handleToggleMode(false)}
+                style={styles.switchTab}
+                activeOpacity={0.85}
+              >
+                <Text
+                  style={[
+                    styles.switchText,
+                    !isSignUp && styles.switchTextActive,
+                  ]}
+                >
+                  Sign In
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => handleToggleMode(true)}
+                style={styles.switchTab}
+                activeOpacity={0.85}
+              >
+                <Text
+                  style={[
+                    styles.switchText,
+                    isSignUp && styles.switchTextActive,
+                  ]}
+                >
+                  Create Account
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Neumorphic Form Card */}
+            <View style={styles.neoCard}>
+              {/* Success Notification Banner */}
+              {successMessage && (
+                <View style={styles.successBox}>
+                  <CheckCircle2 size={18} color="#10B981" style={{ marginTop: 2 }} />
+                  <View style={styles.successTextGroup}>
+                    <Text style={styles.successTitle}>Registration Successful!</Text>
+                    <Text style={styles.successText}>{successMessage}</Text>
+                  </View>
+                </View>
+              )}
+
+              {/* Top Server/API Error Only */}
+              {activeTopError && (
+                <View style={styles.apiErrorBox}>
+                  <AlertCircle size={16} color="#F87171" />
+                  <Text style={styles.apiErrorText}>{activeTopError}</Text>
+                </View>
+              )}
+
+              {/* Full Name Input (Sign Up Only) */}
+              {isSignUp && (
+                <View style={styles.fieldGroup}>
+                  <Text style={styles.label}>YOUR FULL NAME</Text>
+                  <View style={getInputContainerStyle('fullName')}>
+                    <User size={18} color={getIconColor('fullName')} />
+                    <TextInput
+                      style={styles.textInput}
+                      placeholder="Alex Johnson"
+                      placeholderTextColor="#475569"
+                      autoCapitalize="words"
+                      autoComplete="off"
+                      selectionColor="#10B981"
+                      value={fullName}
+                      onFocus={() => setFocusedField('fullName')}
+                      onBlur={() => setFocusedField(null)}
+                      onChangeText={(val) => {
+                        setFullName(val);
+                        clearFieldError('fullName');
+                      }}
+                    />
+                  </View>
+                  {fieldErrors.fullName ? (
+                    <View style={styles.fieldErrorRow}>
+                      <AlertCircle size={13} color="#F87171" />
+                      <Text style={styles.fieldErrorText}>{fieldErrors.fullName}</Text>
+                    </View>
+                  ) : null}
+                </View>
+              )}
+
+              {/* Email Address Input */}
+              <View style={styles.fieldGroup}>
+                <Text style={styles.label}>EMAIL ADDRESS</Text>
+                <View style={getInputContainerStyle('email')}>
+                  <Mail size={18} color={getIconColor('email')} />
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="athlete@domain.com"
+                    placeholderTextColor="#475569"
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    autoComplete="off"
+                    selectionColor="#10B981"
+                    value={email}
+                    onFocus={() => setFocusedField('email')}
+                    onBlur={() => setFocusedField(null)}
+                    onChangeText={(val) => {
+                      setEmail(val);
+                      clearFieldError('email');
+                    }}
+                  />
+                </View>
+                {fieldErrors.email ? (
+                  <View style={styles.fieldErrorRow}>
+                    <AlertCircle size={13} color="#F87171" />
+                    <Text style={styles.fieldErrorText}>{fieldErrors.email}</Text>
+                  </View>
+                ) : null}
+              </View>
+
+              {/* Password Input */}
+              <View style={styles.fieldGroup}>
+                <Text style={styles.label}>PASSWORD</Text>
+                <View style={getInputContainerStyle('password')}>
+                  <Lock size={18} color={getIconColor('password')} />
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="••••••••••••"
+                    placeholderTextColor="#475569"
+                    secureTextEntry={!showPassword}
+                    autoCapitalize="none"
+                    autoComplete="off"
+                    selectionColor="#10B981"
+                    value={password}
+                    onFocus={() => setFocusedField('password')}
+                    onBlur={() => setFocusedField(null)}
+                    onChangeText={(val) => {
+                      setPassword(val);
+                      clearFieldError('password');
+                    }}
+                  />
+                  <TouchableOpacity
+                    onPress={() => setShowPassword(!showPassword)}
+                    activeOpacity={0.7}
+                    style={styles.eyeBtn}
+                  >
+                    {showPassword ? (
+                      <EyeOff size={18} color="#64748B" />
+                    ) : (
+                      <Eye size={18} color="#64748B" />
+                    )}
+                  </TouchableOpacity>
+                </View>
+                {fieldErrors.password ? (
+                  <View style={styles.fieldErrorRow}>
+                    <AlertCircle size={13} color="#F87171" />
+                    <Text style={styles.fieldErrorText}>{fieldErrors.password}</Text>
+                  </View>
+                ) : null}
+              </View>
+
+              {/* Neumorphic Extruded Action Button */}
+              <TouchableOpacity
+                onPress={handleSubmit}
+                disabled={isLoading}
+                style={[styles.neoButton, isLoading && styles.buttonDisabled]}
+                activeOpacity={0.9}
+              >
+                {isLoading ? (
+                  <ActivityIndicator color="#090D16" size="small" />
+                ) : (
+                  <View style={styles.buttonContent}>
+                    <Text style={styles.neoButtonText}>
+                      {isSignUp ? 'Create My Blueprint' : 'Sign In to Dashboard'}
+                    </Text>
+                    <ArrowRight size={19} color="#052E16" strokeWidth={2.8} />
+                  </View>
+                )}
+              </TouchableOpacity>
+            </View>
+
+            {/* Security Guarantee */}
+            <View style={styles.securityRow}>
+              <CheckCircle2 size={14} color="#10B981" />
+              <Text style={styles.securityText}>
+                End-to-end encrypted biometric PostgreSQL database security
+              </Text>
+            </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -140,124 +416,347 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#090D16',
+    backgroundColor: '#161B26', // Neumorphic Dark Steel Slate
   },
-  container: {
+  keyboardContainer: {
     flex: 1,
   },
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 32,
+    paddingVertical: 24,
+    paddingHorizontal: 16,
+  },
+  mobileContainer: {
+    width: '100%',
+    maxWidth: 440,
+    marginHorizontal: 'auto',
   },
   header: {
-    marginBottom: 32,
+    alignItems: 'center',
+    marginBottom: 24,
   },
-  badgeContainer: {
-    alignSelf: 'flex-start',
-    backgroundColor: 'rgba(99, 102, 241, 0.15)',
-    borderColor: 'rgba(99, 102, 241, 0.3)',
-    borderWidth: 1,
-    borderRadius: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+  // Extruded Neumorphic Circle for Brand Icon
+  neoExtrudedCircle: {
+    width: 62,
+    height: 62,
+    borderRadius: 20,
+    backgroundColor: '#161B26',
+    borderTopWidth: 1.5,
+    borderLeftWidth: 1.5,
+    borderTopColor: 'rgba(255, 255, 255, 0.12)',
+    borderLeftColor: 'rgba(255, 255, 255, 0.08)',
+    borderBottomWidth: 2,
+    borderRightWidth: 2,
+    borderBottomColor: '#0A0D13',
+    borderRightColor: '#0A0D13',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 14,
+    shadowColor: '#000000',
+    shadowOffset: { width: 6, height: 6 },
+    shadowOpacity: 0.6,
+    shadowRadius: 10,
+    elevation: 6,
+  },
+  pillBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#161B26',
+    borderTopWidth: 1,
+    borderLeftWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.09)',
+    borderLeftColor: 'rgba(255, 255, 255, 0.06)',
+    borderBottomWidth: 1.5,
+    borderRightWidth: 1.5,
+    borderBottomColor: '#0A0D13',
+    borderRightColor: '#0A0D13',
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 24,
     marginBottom: 12,
+    gap: 6,
+    shadowColor: '#000000',
+    shadowOffset: { width: 3, height: 3 },
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
   },
-  badgeText: {
-    color: '#818CF8',
+  pillBadgeText: {
+    color: '#94A3B8',
     fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 1,
+    fontWeight: '800',
+    letterSpacing: 0.8,
   },
   title: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: '#F8FAFC',
-    letterSpacing: -0.5,
+    fontSize: 27,
+    fontWeight: '900',
+    color: '#F1F5F9',
+    textAlign: 'center',
+    letterSpacing: -0.6,
   },
   subtitle: {
-    fontSize: 15,
+    fontSize: 13,
     color: '#94A3B8',
-    marginTop: 8,
-    lineHeight: 22,
+    textAlign: 'center',
+    marginTop: 6,
+    lineHeight: 19,
+    maxWidth: 320,
   },
-  formCard: {
-    backgroundColor: '#131B2E',
-    borderRadius: 16,
-    padding: 24,
-    borderWidth: 1,
-    borderColor: '#1E293B',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 5,
-  },
-  errorBanner: {
-    backgroundColor: 'rgba(239, 68, 68, 0.15)',
-    borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.3)',
-    borderRadius: 8,
-    padding: 12,
+  // Recessed / Inset Channel for the Switcher
+  neoRecessedSwitcher: {
+    position: 'relative',
+    flexDirection: 'row',
+    backgroundColor: '#11151F',
+    borderRadius: 18,
+    padding: 5,
+    borderTopWidth: 1.5,
+    borderLeftWidth: 1.5,
+    borderTopColor: '#090C12',
+    borderLeftColor: '#090C12',
+    borderBottomWidth: 1,
+    borderRightWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.06)',
+    borderRightColor: 'rgba(255, 255, 255, 0.04)',
     marginBottom: 20,
   },
-  errorBannerText: {
-    color: '#FCA5A5',
+  // Extruded Neumorphic Sliding Pill
+  neoSlidingPill: {
+    position: 'absolute',
+    top: 5,
+    bottom: 5,
+    left: 5,
+    backgroundColor: '#1B2230',
+    borderRadius: 14,
+    borderTopWidth: 1.5,
+    borderLeftWidth: 1.5,
+    borderTopColor: 'rgba(255, 255, 255, 0.16)',
+    borderLeftColor: 'rgba(255, 255, 255, 0.12)',
+    borderBottomWidth: 2,
+    borderRightWidth: 2,
+    borderBottomColor: '#090C12',
+    borderRightColor: '#090C12',
+    shadowColor: '#000000',
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 0.5,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  switchTab: {
+    flex: 1,
+    paddingVertical: 11,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 2,
+  },
+  switchText: {
     fontSize: 13,
+    fontWeight: '700',
+    color: '#64748B',
+    letterSpacing: 0.2,
+  },
+  switchTextActive: {
+    color: '#F8FAFC',
+    fontWeight: '800',
+  },
+  // Extruded Neumorphic Card Body
+  neoCard: {
+    backgroundColor: '#161B26',
+    borderRadius: 24,
+    padding: 22,
+    borderTopWidth: 1.5,
+    borderLeftWidth: 1.5,
+    borderTopColor: 'rgba(255, 255, 255, 0.1)',
+    borderLeftColor: 'rgba(255, 255, 255, 0.07)',
+    borderBottomWidth: 2.5,
+    borderRightWidth: 2.5,
+    borderBottomColor: '#090C12',
+    borderRightColor: '#090C12',
+    shadowColor: '#000000',
+    shadowOffset: { width: 8, height: 8 },
+    shadowOpacity: 0.65,
+    shadowRadius: 20,
+    elevation: 8,
+  },
+  successBox: {
+    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    borderTopWidth: 1,
+    borderLeftWidth: 1,
+    borderTopColor: 'rgba(52, 211, 153, 0.3)',
+    borderLeftColor: 'rgba(52, 211, 153, 0.2)',
+    borderBottomWidth: 1.5,
+    borderRightWidth: 1.5,
+    borderBottomColor: '#064E3B',
+    borderRightColor: '#064E3B',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 18,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  successTextGroup: {
+    flex: 1,
+  },
+  successTitle: {
+    color: '#34D399',
+    fontSize: 13,
+    fontWeight: '800',
+    marginBottom: 3,
+  },
+  successText: {
+    color: '#E2E8F0',
+    fontSize: 12,
+    lineHeight: 17,
     fontWeight: '500',
   },
-  inputGroup: {
-    marginBottom: 20,
+  apiErrorBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(239, 68, 68, 0.12)',
+    borderTopWidth: 1,
+    borderLeftWidth: 1,
+    borderTopColor: 'rgba(248, 113, 113, 0.3)',
+    borderLeftColor: 'rgba(248, 113, 113, 0.2)',
+    borderBottomWidth: 1.5,
+    borderRightWidth: 1.5,
+    borderBottomColor: '#7F1D1D',
+    borderRightColor: '#7F1D1D',
+    borderRadius: 14,
+    padding: 12,
+    marginBottom: 16,
+    gap: 8,
   },
-  inputLabel: {
+  apiErrorText: {
+    color: '#FCA5A5',
+    fontSize: 12,
+    fontWeight: '600',
+    flex: 1,
+  },
+  fieldGroup: {
+    marginBottom: 16,
+  },
+  label: {
     color: '#64748B',
     fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 1,
-    marginBottom: 8,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+    marginBottom: 7,
   },
-  input: {
-    backgroundColor: '#090D16',
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#1E293B',
+  // Inset / Recessed Well for Inputs
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#11151F',
+    borderTopWidth: 1.5,
+    borderLeftWidth: 1.5,
+    borderTopColor: '#090C12',
+    borderLeftColor: '#090C12',
+    borderBottomWidth: 1,
+    borderRightWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
+    borderRightColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: Platform.OS === 'web' ? 11 : 13,
+  },
+  inputContainerFocused: {
+    borderTopColor: '#10B981',
+    borderLeftColor: '#10B981',
+    borderBottomColor: '#065F46',
+    borderRightColor: '#065F46',
+    borderTopWidth: 1.5,
+    borderLeftWidth: 1.5,
+    borderBottomWidth: 1.5,
+    borderRightWidth: 1.5,
+    backgroundColor: '#0F1522',
+  },
+  inputContainerError: {
+    borderTopColor: '#EF4444',
+    borderLeftColor: '#EF4444',
+    borderBottomColor: '#7F1D1D',
+    borderRightColor: '#7F1D1D',
+    borderTopWidth: 1.5,
+    borderLeftWidth: 1.5,
+    borderBottomWidth: 1.5,
+    borderRightWidth: 1.5,
+    backgroundColor: '#181116',
+  },
+  textInput: {
+    flex: 1,
     color: '#F8FAFC',
-    fontSize: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    fontSize: 15,
+    fontWeight: '600',
+    marginLeft: 10,
+    backgroundColor: 'transparent',
+    ...(Platform.OS === 'web'
+      ? ({
+          outlineStyle: 'none',
+          outlineWidth: 0,
+        } as any)
+      : {}),
   },
-  primaryButton: {
-    backgroundColor: '#6366F1',
-    borderRadius: 10,
+  eyeBtn: {
+    padding: 4,
+  },
+  fieldErrorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 6,
+    paddingLeft: 4,
+    gap: 5,
+  },
+  fieldErrorText: {
+    color: '#F87171',
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  // Extruded Neumorphic Action Button with Emerald Radiance
+  neoButton: {
+    backgroundColor: '#10B981',
+    borderRadius: 16,
     paddingVertical: 16,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 8,
+    borderTopWidth: 2,
+    borderLeftWidth: 2,
+    borderTopColor: '#6EE7B7',
+    borderLeftColor: '#34D399',
+    borderBottomWidth: 3,
+    borderRightWidth: 3,
+    borderBottomColor: '#047857',
+    borderRightColor: '#047857',
+    shadowColor: '#000000',
+    shadowOffset: { width: 6, height: 6 },
+    shadowOpacity: 0.55,
+    shadowRadius: 14,
+    elevation: 8,
   },
   buttonDisabled: {
     opacity: 0.6,
   },
-  primaryButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '700',
-    letterSpacing: 0.3,
-  },
-  footer: {
+  buttonContent: {
     flexDirection: 'row',
-    justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 32,
     gap: 8,
   },
-  footerText: {
-    color: '#64748B',
-    fontSize: 14,
+  neoButtonText: {
+    color: '#052E16',
+    fontSize: 16,
+    fontWeight: '900',
+    letterSpacing: 0.4,
   },
-  footerLink: {
-    color: '#818CF8',
-    fontSize: 14,
+  securityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 22,
+    gap: 6,
+  },
+  securityText: {
+    color: '#64748B',
+    fontSize: 11,
     fontWeight: '600',
   },
 });

@@ -15,8 +15,12 @@ interface AuthState {
 
   // Actions
   initializeAuth: () => Promise<void>;
-  signInWithPassword: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signUpWithPassword: (email: string, password: string, fullName?: string) => Promise<{ error: Error | null }>;
+  signInWithPassword: (email: string, password: string) => Promise<{ error: Error | null; data?: any }>;
+  signUpWithPassword: (
+    email: string,
+    password: string,
+    fullName?: string
+  ) => Promise<{ error: Error | null; data?: any; isConfirmed?: boolean }>;
   signOut: () => Promise<void>;
   fetchUserProfile: (userId: string) => Promise<void>;
   fetchLatestAssessment: (userId: string) => Promise<BodyAssessment | null>;
@@ -98,7 +102,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         });
       }
 
-      return { error: null };
+      return { error: null, data };
     } catch (err: any) {
       set({ error: err.message || 'Login failed', isLoading: false });
       return { error: err };
@@ -123,7 +127,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         return { error };
       }
 
-      if (data.session && data.user) {
+      const hasSession = Boolean(data.session && data.user);
+
+      if (hasSession && data.user) {
         set({
           session: data.session,
           authUser: data.user,
@@ -135,7 +141,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         set({ isLoading: false });
       }
 
-      return { error: null };
+      return { error: null, data, isConfirmed: hasSession };
     } catch (err: any) {
       set({ error: err.message || 'Registration failed', isLoading: false });
       return { error: err };

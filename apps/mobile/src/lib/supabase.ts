@@ -6,65 +6,65 @@ import { Database } from '@fitness/types';
 
 /**
  * Custom Storage Adapter bridging Supabase Auth session persistence
- * with Expo SecureStore on Native platforms and localStorage on Web.
+ * with Expo SecureStore on Native platforms and window.localStorage on Web.
  */
 const ExpoSecureStoreAdapter = {
   getItem: async (key: string): Promise<string | null> => {
     try {
       if (Platform.OS === 'web') {
-        if (typeof localStorage !== 'undefined') {
-          return localStorage.getItem(key);
+        if (typeof window !== 'undefined' && window.localStorage) {
+          return window.localStorage.getItem(key);
         }
         return null;
       }
       return await SecureStore.getItemAsync(key);
-    } catch (error) {
-      console.error(`[SecureStoreAdapter] Error retrieving key "${key}":`, error);
+    } catch {
       return null;
     }
   },
   setItem: async (key: string, value: string): Promise<void> => {
     try {
       if (Platform.OS === 'web') {
-        if (typeof localStorage !== 'undefined') {
-          localStorage.setItem(key, value);
+        if (typeof window !== 'undefined' && window.localStorage) {
+          window.localStorage.setItem(key, value);
         }
         return;
       }
       await SecureStore.setItemAsync(key, value);
-    } catch (error) {
-      console.error(`[SecureStoreAdapter] Error storing key "${key}":`, error);
+    } catch {
+      // Ignore storage errors in restricted contexts
     }
   },
   removeItem: async (key: string): Promise<void> => {
     try {
       if (Platform.OS === 'web') {
-        if (typeof localStorage !== 'undefined') {
-          localStorage.removeItem(key);
+        if (typeof window !== 'undefined' && window.localStorage) {
+          window.localStorage.removeItem(key);
         }
         return;
       }
       await SecureStore.deleteItemAsync(key);
-    } catch (error) {
-      console.error(`[SecureStoreAdapter] Error deleting key "${key}":`, error);
+    } catch {
+      // Ignore storage errors in restricted contexts
     }
   },
 };
 
-const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://placeholder-url.supabase.co';
-const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-anon-key';
-
-if (!process.env.EXPO_PUBLIC_SUPABASE_URL || !process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY) {
-  console.warn(
-    '[Supabase] Warning: EXPO_PUBLIC_SUPABASE_URL or EXPO_PUBLIC_SUPABASE_ANON_KEY is not defined. Ensure your .env file is set up.'
-  );
-}
+const supabaseUrl =
+  process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://oftywfrpcfbjpgpplszl.supabase.co';
+const supabaseAnonKey =
+  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_DhZ4fPlhhzIjqk8-B0s7Yg_PF4dl5-y';
 
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
     storage: ExpoSecureStoreAdapter,
-    autoRefreshToken: true,
+    autoRefreshToken: Platform.OS !== 'web' || typeof window !== 'undefined',
     persistSession: true,
     detectSessionInUrl: false,
+  },
+  global: {
+    headers: {
+      apikey: supabaseAnonKey,
+    },
   },
 });
