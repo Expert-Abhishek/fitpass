@@ -1,0 +1,9 @@
+{
+  "name": "@fitness/database",
+  "version": "1.0.0",
+  "description": "PostgreSQL database migrations, schema definitions, and RLS policies for Supabase",
+  "private": true,
+  "scripts": {
+    "db:lint": "echo 'Linting SQL migrations...'"
+  }
+}
