@@ -21,6 +21,7 @@ interface AuthState {
     password: string,
     fullName?: string
   ) => Promise<{ error: Error | null; data?: any; isConfirmed?: boolean }>;
+  resendConfirmationEmail: (email: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   fetchUserProfile: (userId: string) => Promise<void>;
   fetchLatestAssessment: (userId: string) => Promise<BodyAssessment | null>;
@@ -144,6 +145,27 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       return { error: null, data, isConfirmed: hasSession };
     } catch (err: any) {
       set({ error: err.message || 'Registration failed', isLoading: false });
+      return { error: err };
+    }
+  },
+
+  resendConfirmationEmail: async (email: string) => {
+    try {
+      set({ isLoading: true, error: null });
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email,
+      });
+
+      if (error) {
+        set({ error: error.message, isLoading: false });
+        return { error };
+      }
+
+      set({ isLoading: false });
+      return { error: null };
+    } catch (err: any) {
+      set({ error: err.message || 'Failed to resend confirmation email', isLoading: false });
       return { error: err };
     }
   },

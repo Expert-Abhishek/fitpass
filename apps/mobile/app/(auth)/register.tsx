@@ -2,5 +2,5 @@ import React from 'react';
 import AuthScreen from './login';
 
 export default function RegisterScreen() {
-  return <AuthScreen />;
+  return <AuthScreen initialMode="signup" />;
 }

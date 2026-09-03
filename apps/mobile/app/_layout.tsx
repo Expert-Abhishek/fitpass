@@ -1,10 +1,36 @@
 import React, { useEffect } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { ActivityIndicator, StyleSheet, View, Text, Platform } from 'react-native';
+import { ActivityIndicator, StyleSheet, View, Text, Platform, LogBox } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useAuthStore } from '../src/stores/authStore';
 import { supabase } from '../src/lib/supabase';
+
+// Ignore React Native internal Bridgeless engine diagnostic warnings
+if (typeof console !== 'undefined') {
+  const originalError = console.error;
+  console.error = function (...args: any[]) {
+    if (
+      args.some(
+        (arg) =>
+          typeof arg === 'string' &&
+          (arg.includes('disableEventLoopOnBridgeless') ||
+            arg.includes('disableeventlooponbridgeless') ||
+            arg.includes('Could not access feature flag'))
+      )
+    ) {
+      return;
+    }
+    originalError.apply(console, args);
+  };
+}
+
+LogBox.ignoreLogs([
+  /disableeventlooponbridgeless/i,
+  /disableEventLoopOnBridgeless/i,
+  /native module method was not available/i,
+  /Could not access feature flag/i,
+]);
 
 // Inject Global Autofill & Focus CSS for Web
 if (Platform.OS === 'web' && typeof document !== 'undefined') {

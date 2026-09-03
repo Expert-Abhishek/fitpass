@@ -3,8 +3,14 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "build": "turbo run build",
+    "start": "pnpm --filter @fitness/mobile dev",
     "dev": "turbo run dev",
+    "dev:mobile": "pnpm --filter @fitness/mobile dev",
+    "dev:tunnel": "pnpm --filter @fitness/mobile dev -- --tunnel",
+    "android": "pnpm --filter @fitness/mobile android",
+    "ios": "pnpm --filter @fitness/mobile ios",
+    "web": "pnpm --filter @fitness/mobile web",
+    "build": "turbo run build",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "clean": "turbo run clean"
