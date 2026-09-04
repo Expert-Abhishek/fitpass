@@ -18,6 +18,10 @@ export type MealLog = Database['public']['Tables']['meal_logs']['Row'];
 export type MealLogInsert = Database['public']['Tables']['meal_logs']['Insert'];
 export type MealLogUpdate = Database['public']['Tables']['meal_logs']['Update'];
 
+export type WaterLog = Database['public']['Tables']['water_logs']['Row'];
+export type WaterLogInsert = Database['public']['Tables']['water_logs']['Insert'];
+export type WaterLogUpdate = Database['public']['Tables']['water_logs']['Update'];
+
 export type { Gender, TargetGoal, BMICategory };
 
 export interface BMIResult {

@@ -17,11 +17,12 @@ interface WaterTrackerProps {
 }
 
 export default function WaterTracker({
-  currentMl,
+  currentMl = 0,
   targetMl = 3000,
   onAddWater,
 }: WaterTrackerProps) {
-  const percent = Math.min(100, Math.round((currentMl / targetMl) * 100));
+  const safeTarget = targetMl > 0 ? targetMl : 3000;
+  const percent = Math.min(100, Math.max(0, Math.round((currentMl / safeTarget) * 100)));
   const animatedWidth = useRef(new Animated.Value(percent)).current;
 
   useEffect(() => {
@@ -31,7 +32,7 @@ export default function WaterTracker({
       friction: 8,
       useNativeDriver: false,
     }).start();
-  }, [percent]);
+  }, [percent, animatedWidth]);
 
   const widthInterpolation = animatedWidth.interpolate({
     inputRange: [0, 100],
@@ -54,7 +55,7 @@ export default function WaterTracker({
 
         <View style={styles.statsTag}>
           <Text style={styles.statsCurrent}>{currentMl}</Text>
-          <Text style={styles.statsTarget}>/ {targetMl} mL</Text>
+          <Text style={styles.statsTarget}>/ {safeTarget} mL</Text>
         </View>
       </View>
 

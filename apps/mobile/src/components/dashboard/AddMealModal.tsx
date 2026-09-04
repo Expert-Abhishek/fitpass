@@ -10,6 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import {
   X,
@@ -18,25 +19,17 @@ import {
   Flame,
   Check,
   Sparkles,
-  Plus,
 } from 'lucide-react-native';
 import { NeuTheme } from '../../theme/neumorphic';
 import NeuCard from '../neumorphic/NeuCard';
-import NeuButton from '../neumorphic/NeuButton';
+import { NewMealPayload } from '../../stores/dashboardStore';
 
-export interface NewMealPayload {
-  name: string;
-  type: 'Breakfast' | 'Lunch' | 'Dinner' | 'Snack';
-  calories: number;
-  protein: number;
-  carbs: number;
-  fats: number;
-}
+export type { NewMealPayload };
 
 interface AddMealModalProps {
   visible: boolean;
   onClose: () => void;
-  onSaveMeal: (meal: NewMealPayload) => void;
+  onSaveMeal: (meal: NewMealPayload) => Promise<void> | void;
   onSnapPhotoAI?: () => void;
 }
 
@@ -52,6 +45,7 @@ export default function AddMealModal({
   const [protein, setProtein] = useState('');
   const [carbs, setCarbs] = useState('');
   const [fats, setFats] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const mealTypes: ('Breakfast' | 'Lunch' | 'Dinner' | 'Snack')[] = [
     'Breakfast',
@@ -60,7 +54,7 @@ export default function AddMealModal({
     'Snack',
   ];
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!mealName.trim()) {
       Alert.alert('Missing Field', 'Please enter a meal name or description.');
       return;
@@ -71,22 +65,34 @@ export default function AddMealModal({
     const cNum = Number(carbs) || 0;
     const fNum = Number(fats) || 0;
 
-    onSaveMeal({
-      name: mealName.trim(),
-      type: mealType,
-      calories: calNum,
-      protein: pNum,
-      carbs: cNum,
-      fats: fNum,
-    });
+    if (calNum === 0 && pNum === 0 && cNum === 0 && fNum === 0) {
+      Alert.alert('Missing Calories', 'Please enter estimated calories for this meal.');
+      return;
+    }
 
-    // Reset fields
-    setMealName('');
-    setCalories('');
-    setProtein('');
-    setCarbs('');
-    setFats('');
-    onClose();
+    try {
+      setIsSubmitting(true);
+      await onSaveMeal({
+        name: mealName.trim(),
+        type: mealType,
+        calories: calNum,
+        protein: pNum,
+        carbs: cNum,
+        fats: fNum,
+      });
+
+      // Reset fields on success
+      setMealName('');
+      setCalories('');
+      setProtein('');
+      setCarbs('');
+      setFats('');
+      onClose();
+    } catch (err: any) {
+      Alert.alert('Error', err.message || 'Failed to save meal.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -270,11 +276,18 @@ export default function AddMealModal({
             {/* Submit Button */}
             <TouchableOpacity
               onPress={handleSave}
-              style={styles.saveButton}
+              disabled={isSubmitting}
+              style={[styles.saveButton, isSubmitting && { opacity: 0.7 }]}
               activeOpacity={0.88}
             >
-              <Check size={18} color="#052E16" strokeWidth={2.6} />
-              <Text style={styles.saveButtonText}>Log Meal into Blueprint</Text>
+              {isSubmitting ? (
+                <ActivityIndicator color="#052E16" size="small" />
+              ) : (
+                <>
+                  <Check size={18} color="#052E16" strokeWidth={2.6} />
+                  <Text style={styles.saveButtonText}>Log Meal into Blueprint</Text>
+                </>
+              )}
             </TouchableOpacity>
           </ScrollView>
         </View>
@@ -467,6 +480,13 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: NeuTheme.colors.textPrimary,
     padding: 0,
+    backgroundColor: 'transparent',
+    ...(Platform.OS === 'web'
+      ? ({
+          outlineStyle: 'none',
+          outlineWidth: 0,
+        } as any)
+      : {}),
   },
   macrosRow: {
     flexDirection: 'row',

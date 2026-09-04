@@ -171,6 +171,35 @@ export interface Database {
           }
         ];
       };
+      water_logs: {
+        Row: {
+          id: string;
+          user_id: string;
+          amount_ml: number;
+          logged_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          amount_ml: number;
+          logged_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          amount_ml?: number;
+          logged_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "water_logs_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
     };
     Views: {
       [_ in never]: never;

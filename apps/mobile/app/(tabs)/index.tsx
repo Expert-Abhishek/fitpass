@@ -1,52 +1,66 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   StyleSheet,
   View,
   ScrollView,
   Alert,
-  Platform,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { NeuTheme } from '../../src/theme/neumorphic';
 import { useAuthStore } from '../../src/stores/authStore';
+import { useDashboardStore, NewMealPayload } from '../../src/stores/dashboardStore';
 import DashboardHeader from '../../src/components/dashboard/DashboardHeader';
 import HeroActionTiles from '../../src/components/dashboard/HeroActionTiles';
-import MacroBreakdown, { MacroData } from '../../src/components/dashboard/MacroBreakdown';
+import MacroBreakdown from '../../src/components/dashboard/MacroBreakdown';
 import WaterTracker from '../../src/components/dashboard/WaterTracker';
 import EnergyBalanceChart from '../../src/components/dashboard/EnergyBalanceChart';
 import AIPostureInsightChip from '../../src/components/dashboard/AIPostureInsightChip';
-import AddMealModal, { NewMealPayload } from '../../src/components/dashboard/AddMealModal';
+import AddMealModal from '../../src/components/dashboard/AddMealModal';
+import DashboardSkeleton from '../../src/components/dashboard/DashboardSkeleton';
 
 export default function DashboardScreen() {
   const router = useRouter();
-  const { profile, authUser, latestAssessment, signOut } = useAuthStore();
+  const { profile, authUser, latestAssessment, signOut, isInitialized } = useAuthStore();
 
-  // Selected date state
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const {
+    isLoading,
+    isRefreshing,
+    streakDays,
+    macroData,
+    waterMl,
+    targetWaterMl,
+    completedRepsToday,
+    targetRepsToday,
+    loggedMealsCount,
+    chartData,
+    fetchDashboardData,
+    logMeal,
+    logWater,
+    removeWater,
+  } = useDashboardStore();
 
-  // Dynamic Macro & Calorie State
-  const targetCalories = latestAssessment?.bmr
-    ? Math.round(Number(latestAssessment.bmr) * 1.35)
-    : 2400;
-
-  const [macroData, setMacroData] = useState<MacroData>({
-    caloriesConsumed: 1840,
-    caloriesTarget: targetCalories,
-    caloriesBurned: 620,
-    protein: { current: 125, target: 160 },
-    carbs: { current: 195, target: 240 },
-    fats: { current: 52, target: 70 },
-    fiber: { current: 28, target: 35 },
-  });
-
-  // Water intake state
-  const [waterMl, setWaterMl] = useState<number>(1750);
-  const targetWaterMl = 3000;
-
-  // Add Meal modal state
   const [isAddMealVisible, setIsAddMealVisible] = useState(false);
-  const [loggedMealsCount, setLoggedMealsCount] = useState(2);
+
+  // Dynamic Assessment parameters
+  const bmr = latestAssessment?.bmr ? Number(latestAssessment.bmr) : 1750;
+  const targetGoal = latestAssessment?.target_goal || 'MAINTENANCE';
+  const weightKg = latestAssessment?.weight_kg ? Number(latestAssessment.weight_kg) : 70;
+
+  // Load Dashboard data on mount or when user/assessment changes
+  useEffect(() => {
+    if (authUser?.id) {
+      fetchDashboardData(authUser.id, bmr, targetGoal, weightKg, false);
+    }
+  }, [authUser?.id, bmr, targetGoal, weightKg]);
+
+  // Pull-to-refresh handler
+  const handleRefresh = useCallback(() => {
+    if (authUser?.id) {
+      fetchDashboardData(authUser.id, bmr, targetGoal, weightKg, true);
+    }
+  }, [authUser?.id, bmr, targetGoal, weightKg]);
 
   // Sign out confirmation
   const handleSignOut = () => {
@@ -57,41 +71,48 @@ export default function DashboardScreen() {
         style: 'destructive',
         onPress: async () => {
           await signOut();
+          router.replace('/(auth)/login');
         },
       },
     ]);
   };
 
-  // Water increment handler
+  // Water increment / decrement handler
   const handleAddWater = (deltaMl: number) => {
-    setWaterMl((prev) => Math.max(0, Math.min(6000, prev + deltaMl)));
+    if (!authUser?.id) return;
+    if (deltaMl > 0) {
+      logWater(authUser.id, deltaMl);
+    } else {
+      removeWater(authUser.id, Math.abs(deltaMl));
+    }
   };
 
-  // New meal logging handler
-  const handleSaveMeal = (meal: NewMealPayload) => {
-    setMacroData((prev) => ({
-      ...prev,
-      caloriesConsumed: prev.caloriesConsumed + meal.calories,
-      protein: { ...prev.protein, current: prev.protein.current + meal.protein },
-      carbs: { ...prev.carbs, current: prev.carbs.current + meal.carbs },
-      fats: { ...prev.fats, current: prev.fats.current + meal.fats },
-    }));
-    setLoggedMealsCount((prev) => prev + 1);
+  // New meal logging handler with backend persistence
+  const handleSaveMeal = async (meal: NewMealPayload) => {
+    if (!authUser?.id) {
+      Alert.alert('Session Expired', 'Please sign in again to record meals.');
+      return;
+    }
 
-    Alert.alert('Meal Logged! 🎉', `${meal.name} (+${meal.calories} kcal) added to your blueprint.`);
+    const result = await logMeal(authUser.id, meal);
+    if (result.success) {
+      Alert.alert('Meal Logged! 🎉', `${meal.name} (+${meal.calories} kcal) added to your daily blueprint.`);
+    } else {
+      Alert.alert('Save Failed', result.error || 'Could not record meal.');
+    }
   };
 
   const handleStartWorkout = () => {
     Alert.alert(
       'AI Workout Engine',
-      'Module 2 Realtime Pose Detection & Rep Counter is ready to calibrate your movements.'
+      'Module 2 Realtime Pose Detection & Rep Counter is calibrated and ready.'
     );
   };
 
   const handleSnapPhotoAI = () => {
     Alert.alert(
       'AI Meal Scanner',
-      'Module 3 Computer Vision meal scanning will auto-estimate food volume, calories, and macros.'
+      'Module 3 Computer Vision meal scanning will auto-estimate portions, calories, and macros.'
     );
   };
 
@@ -102,44 +123,56 @@ export default function DashboardScreen() {
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            tintColor={NeuTheme.colors.emerald}
+            colors={[NeuTheme.colors.emerald]}
+          />
+        }
       >
         <View style={styles.mobileContainer}>
-          {/* Header with Greeting, Streak & Date Carousel */}
-          <DashboardHeader
-            userName={athleteName}
-            streakDays={7}
-            selectedDate={selectedDate}
-            onSelectDate={setSelectedDate}
-            onSignOut={handleSignOut}
-          />
+          {isLoading && !isRefreshing ? (
+            <DashboardSkeleton />
+          ) : (
+            <>
+              {/* Header with Greeting & Dynamic Streak Badge */}
+              <DashboardHeader
+                userName={athleteName}
+                streakDays={streakDays}
+                onSignOut={handleSignOut}
+              />
 
-          {/* Primary Hero Action Tiles: Workouts & Diet */}
-          <HeroActionTiles
-            onStartWorkout={handleStartWorkout}
-            onOpenDietTracker={() => setIsAddMealVisible(true)}
-            completedRepsToday={45}
-            targetRepsToday={80}
-            loggedMealsCount={loggedMealsCount}
-          />
+              {/* Primary Hero Action Tiles: Workouts & Diet */}
+              <HeroActionTiles
+                onStartWorkout={handleStartWorkout}
+                onOpenDietTracker={() => setIsAddMealVisible(true)}
+                completedRepsToday={completedRepsToday}
+                targetRepsToday={targetRepsToday}
+                loggedMealsCount={loggedMealsCount}
+              />
 
-          {/* Nutrition & Macro Overview Section */}
-          <MacroBreakdown
-            data={macroData}
-            onAddMealPress={() => setIsAddMealVisible(true)}
-          />
+              {/* Nutrition & Macro Overview Section */}
+              <MacroBreakdown
+                data={macroData}
+                onAddMealPress={() => setIsAddMealVisible(true)}
+              />
 
-          {/* Smart Water Intake Tracker */}
-          <WaterTracker
-            currentMl={waterMl}
-            targetMl={targetWaterMl}
-            onAddWater={handleAddWater}
-          />
+              {/* Smart Water Intake Tracker */}
+              <WaterTracker
+                currentMl={waterMl}
+                targetMl={targetWaterMl}
+                onAddWater={handleAddWater}
+              />
 
-          {/* Burn vs Intake Energy Balance SVG Chart (Module 5) */}
-          <EnergyBalanceChart />
+              {/* Real-time Burn vs Intake Energy Balance SVG Chart */}
+              <EnergyBalanceChart data={chartData} />
 
-          {/* AI Posture & Biomechanical Form Insight Chip */}
-          <AIPostureInsightChip />
+              {/* AI Posture & Biomechanical Form Insight Chip */}
+              <AIPostureInsightChip />
+            </>
+          )}
         </View>
       </ScrollView>
 

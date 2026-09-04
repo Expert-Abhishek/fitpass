@@ -8,21 +8,24 @@ import {
   LayoutChangeEvent,
 } from 'react-native';
 import Svg, { Rect, Line, Text as SvgText, Defs, LinearGradient, Stop } from 'react-native-svg';
-import { TrendingDown, TrendingUp } from 'lucide-react-native';
+import { TrendingDown, TrendingUp, Info } from 'lucide-react-native';
 import { NeuTheme } from '../../theme/neumorphic';
 import NeuCard from '../neumorphic/NeuCard';
+import { ChartPoint } from '../../stores/dashboardStore';
 
 type Timeframe = 'Day' | 'Week' | 'Month';
 
-interface ChartPoint {
-  label: string;
-  intake: number;
-  burn: number;
+interface EnergyBalanceChartProps {
+  data?: {
+    day: ChartPoint[];
+    week: ChartPoint[];
+    month: ChartPoint[];
+  };
 }
 
-export default function EnergyBalanceChart() {
+export default function EnergyBalanceChart({ data }: EnergyBalanceChartProps) {
   const [timeframe, setTimeframe] = useState<Timeframe>('Week');
-  const [selectedIndex, setSelectedIndex] = useState<number>(4);
+  const [selectedIndex, setSelectedIndex] = useState<number>(0);
   const [containerWidth, setContainerWidth] = useState<number>(
     Dimensions.get('window').width > 440
       ? 360
@@ -36,54 +39,29 @@ export default function EnergyBalanceChart() {
     }
   };
 
-  const weekData: ChartPoint[] = [
-    { label: 'Mon', intake: 2150, burn: 2450 },
-    { label: 'Tue', intake: 1980, burn: 2300 },
-    { label: 'Wed', intake: 2400, burn: 2550 },
-    { label: 'Thu', intake: 1850, burn: 2400 },
-    { label: 'Fri', intake: 1840, burn: 2460 },
-    { label: 'Sat', intake: 2200, burn: 2600 },
-    { label: 'Sun', intake: 1900, burn: 2350 },
-  ];
-
-  const dayData: ChartPoint[] = [
-    { label: '8AM', intake: 450, burn: 300 },
-    { label: '12PM', intake: 650, burn: 550 },
-    { label: '3PM', intake: 200, burn: 400 },
-    { label: '6PM', intake: 540, burn: 750 },
-    { label: '9PM', intake: 0, burn: 460 },
-  ];
-
-  const monthData: ChartPoint[] = [
-    { label: 'Wk 1', intake: 14200, burn: 16800 },
-    { label: 'Wk 2', intake: 13900, burn: 17100 },
-    { label: 'Wk 3', intake: 14500, burn: 16900 },
-    { label: 'Wk 4', intake: 13100, burn: 16500 },
-  ];
-
-  const getData = () => {
-    switch (timeframe) {
-      case 'Day':
-        return dayData;
-      case 'Month':
-        return monthData;
-      default:
-        return weekData;
-    }
+  const getPoints = (): ChartPoint[] => {
+    if (!data) return [];
+    if (timeframe === 'Day') return data.day || [];
+    if (timeframe === 'Month') return data.month || [];
+    return data.week || [];
   };
 
-  const activeData = getData();
-  const currentPoint = activeData[Math.min(selectedIndex, activeData.length - 1)] || activeData[0];
+  const activeData = getPoints();
+  const hasLogs = activeData.some((d) => d.intake > 0 || d.burn > 0);
+
+  const activeIndex = Math.min(selectedIndex, Math.max(0, activeData.length - 1));
+  const currentPoint = activeData[activeIndex] || { label: 'Today', intake: 0, burn: 0 };
   const deltaEnergy = currentPoint.intake - currentPoint.burn;
   const isDeficit = deltaEnergy <= 0;
 
   // Dynamic Chart Dimensions
   const chartHeight = 135;
   const chartWidth = Math.max(240, containerWidth);
-  const maxCal = Math.max(...activeData.map((d) => Math.max(d.intake, d.burn))) * 1.15;
+  const rawMax = Math.max(...activeData.map((d) => Math.max(d.intake || 0, d.burn || 0)), 500);
+  const maxCal = rawMax * 1.15;
 
-  const barGroupWidth = chartWidth / activeData.length;
-  const barWidth = Math.max(6, Math.min(13, (barGroupWidth - 8) / 2));
+  const barGroupWidth = activeData.length > 0 ? chartWidth / activeData.length : chartWidth;
+  const barWidth = Math.max(5, Math.min(13, (barGroupWidth - 8) / 2));
 
   return (
     <NeuCard variant="raised" padding={16} borderRadius={22} style={styles.card}>
@@ -123,22 +101,45 @@ export default function EnergyBalanceChart() {
           <View
             style={[
               styles.deltaIconBadge,
-              { backgroundColor: isDeficit ? NeuTheme.colors.emeraldBg : NeuTheme.colors.coralBg },
+              {
+                backgroundColor: hasLogs
+                  ? isDeficit
+                    ? NeuTheme.colors.emeraldBg
+                    : NeuTheme.colors.coralBg
+                  : NeuTheme.colors.recessedWell,
+              },
             ]}
           >
-            {isDeficit ? (
-              <TrendingDown size={15} color={NeuTheme.colors.emerald} />
+            {hasLogs ? (
+              isDeficit ? (
+                <TrendingDown size={15} color={NeuTheme.colors.emerald} />
+              ) : (
+                <TrendingUp size={15} color={NeuTheme.colors.coral} />
+              )
             ) : (
-              <TrendingUp size={15} color={NeuTheme.colors.coral} />
+              <Info size={15} color={NeuTheme.colors.textMuted} />
             )}
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.deltaValueText} numberOfLines={1}>
-              {currentPoint.label}: {Math.abs(deltaEnergy)} kcal {isDeficit ? 'Deficit (Fat Loss)' : 'Surplus (Growth)'}
-            </Text>
-            <Text style={styles.deltaSubText} numberOfLines={1}>
-              Intake: {currentPoint.intake} kcal • Burn: {currentPoint.burn} kcal
-            </Text>
+            {hasLogs ? (
+              <>
+                <Text style={styles.deltaValueText} numberOfLines={1}>
+                  {currentPoint.label}: {Math.abs(deltaEnergy)} kcal {isDeficit ? 'Deficit (Fat Loss)' : 'Surplus (Growth)'}
+                </Text>
+                <Text style={styles.deltaSubText} numberOfLines={1}>
+                  Intake: {currentPoint.intake} kcal • Burn: {currentPoint.burn} kcal
+                </Text>
+              </>
+            ) : (
+              <>
+                <Text style={styles.deltaValueText} numberOfLines={1}>
+                  {timeframe} Energy Tracking
+                </Text>
+                <Text style={styles.deltaSubText} numberOfLines={1}>
+                  Log meals or workouts to see real-time metabolic deficit / surplus.
+                </Text>
+              </>
+            )}
           </View>
         </View>
       </NeuCard>
@@ -157,7 +158,7 @@ export default function EnergyBalanceChart() {
             </LinearGradient>
           </Defs>
 
-          {/* Grid lines */}
+          {/* Grid Baseline */}
           <Line
             x1="0"
             y1={chartHeight - 22}
@@ -171,9 +172,9 @@ export default function EnergyBalanceChart() {
           {/* Render grouped bars */}
           {activeData.map((d, i) => {
             const groupX = i * barGroupWidth;
-            const intakeHeight = (d.intake / maxCal) * (chartHeight - 32);
-            const burnHeight = (d.burn / maxCal) * (chartHeight - 32);
-            const isSelected = selectedIndex === i;
+            const intakeHeight = maxCal > 0 ? (d.intake / maxCal) * (chartHeight - 32) : 0;
+            const burnHeight = maxCal > 0 ? (d.burn / maxCal) * (chartHeight - 32) : 0;
+            const isSelected = activeIndex === i;
 
             return (
               <React.Fragment key={i}>
@@ -192,22 +193,22 @@ export default function EnergyBalanceChart() {
                 {/* Intake Bar (Emerald) */}
                 <Rect
                   x={groupX + (barGroupWidth / 2) - barWidth - 1.5}
-                  y={chartHeight - 22 - intakeHeight}
+                  y={chartHeight - 22 - Math.max(3, intakeHeight)}
                   width={barWidth}
-                  height={intakeHeight}
+                  height={Math.max(3, intakeHeight)}
                   rx={barWidth / 2}
-                  fill="url(#intakeGrad)"
+                  fill={d.intake > 0 ? 'url(#intakeGrad)' : '#E2E8F0'}
                   onPress={() => setSelectedIndex(i)}
                 />
 
                 {/* Burn Bar (Amber) */}
                 <Rect
                   x={groupX + (barGroupWidth / 2) + 1.5}
-                  y={chartHeight - 22 - burnHeight}
+                  y={chartHeight - 22 - Math.max(3, burnHeight)}
                   width={barWidth}
-                  height={burnHeight}
+                  height={Math.max(3, burnHeight)}
                   rx={barWidth / 2}
-                  fill="url(#burnGrad)"
+                  fill={d.burn > 0 ? 'url(#burnGrad)' : '#E2E8F0'}
                   onPress={() => setSelectedIndex(i)}
                 />
 

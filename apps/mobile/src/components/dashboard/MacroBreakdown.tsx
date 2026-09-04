@@ -8,16 +8,7 @@ import {
 import { Plus, Flame } from 'lucide-react-native';
 import { NeuTheme } from '../../theme/neumorphic';
 import NeuCard from '../neumorphic/NeuCard';
-
-export interface MacroData {
-  caloriesConsumed: number;
-  caloriesTarget: number;
-  caloriesBurned: number;
-  protein: { current: number; target: number };
-  carbs: { current: number; target: number };
-  fats: { current: number; target: number };
-  fiber: { current: number; target: number };
-}
+import { MacroData } from '../../stores/dashboardStore';
 
 interface MacroBreakdownProps {
   data: MacroData;
@@ -28,44 +19,42 @@ export default function MacroBreakdown({
   data,
   onAddMealPress,
 }: MacroBreakdownProps) {
-  const remainingCalories = Math.max(
-    0,
-    data.caloriesTarget - data.caloriesConsumed + data.caloriesBurned
-  );
-  const intakePercent = Math.min(
-    100,
-    Math.round((data.caloriesConsumed / data.caloriesTarget) * 100)
-  );
+  const targetKcal = data.caloriesTarget || 2000;
+  const consumedKcal = data.caloriesConsumed || 0;
+  const burnedKcal = data.caloriesBurned || 0;
+
+  const remainingCalories = Math.max(0, targetKcal - consumedKcal + burnedKcal);
+  const intakePercent = targetKcal > 0 ? Math.min(100, Math.round((consumedKcal / targetKcal) * 100)) : 0;
 
   const macroItems = [
     {
       label: 'PROTEIN',
-      current: data.protein.current,
-      target: data.protein.target,
+      current: data.protein?.current || 0,
+      target: data.protein?.target || 140,
       color: NeuTheme.colors.emerald,
       bgColor: NeuTheme.colors.emeraldBg,
       unit: 'g',
     },
     {
       label: 'CARBS',
-      current: data.carbs.current,
-      target: data.carbs.target,
+      current: data.carbs?.current || 0,
+      target: data.carbs?.target || 220,
       color: NeuTheme.colors.skyBlue,
       bgColor: NeuTheme.colors.skyBlueBg,
       unit: 'g',
     },
     {
       label: 'FATS',
-      current: data.fats.current,
-      target: data.fats.target,
+      current: data.fats?.current || 0,
+      target: data.fats?.target || 65,
       color: NeuTheme.colors.amber,
       bgColor: NeuTheme.colors.amberBg,
       unit: 'g',
     },
     {
       label: 'FIBER',
-      current: data.fiber.current,
-      target: data.fiber.target,
+      current: data.fiber?.current || 0,
+      target: data.fiber?.target || 30,
       color: NeuTheme.colors.violet,
       bgColor: NeuTheme.colors.violetBg,
       unit: 'g',
@@ -97,14 +86,14 @@ export default function MacroBreakdown({
           <View style={{ flex: 1 }}>
             <Text style={styles.meterLabel}>CONSUMED TODAY</Text>
             <View style={styles.calorieValueRow}>
-              <Text style={styles.consumedKcalText}>{data.caloriesConsumed}</Text>
-              <Text style={styles.targetKcalText}>/ {data.caloriesTarget} kcal</Text>
+              <Text style={styles.consumedKcalText}>{consumedKcal}</Text>
+              <Text style={styles.targetKcalText}>/ {targetKcal} kcal</Text>
             </View>
           </View>
 
           <View style={styles.burnPill}>
             <Flame size={13} color={NeuTheme.colors.coral} />
-            <Text style={styles.burnPillText}>+{data.caloriesBurned} burn</Text>
+            <Text style={styles.burnPillText}>+{burnedKcal} burn</Text>
           </View>
         </View>
 
@@ -135,10 +124,9 @@ export default function MacroBreakdown({
       {/* 4-Column Macro Pill Grid */}
       <View style={styles.macroGrid}>
         {macroItems.map((item, index) => {
-          const percent = Math.min(
-            100,
-            Math.round((item.current / item.target) * 100)
-          );
+          const percent = item.target > 0
+            ? Math.min(100, Math.round((item.current / item.target) * 100))
+            : 0;
 
           return (
             <NeuCard
