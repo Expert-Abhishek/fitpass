@@ -27,7 +27,9 @@ import {
   RefreshCw,
   Send,
 } from 'lucide-react-native';
+import { useLocalSearchParams } from 'expo-router';
 import { useAuthStore } from '../../src/stores/authStore';
+import RegistrationSuccessView from '../../src/components/RegistrationSuccessView';
 
 type FieldName = 'fullName' | 'email' | 'password';
 
@@ -42,9 +44,12 @@ interface AuthScreenProps {
 }
 
 export default function AuthScreen({ initialMode = 'signin' }: AuthScreenProps) {
-  const [isSignUp, setIsSignUp] = useState(initialMode === 'signup');
+  const params = useLocalSearchParams<{ email?: string; mode?: string }>();
+  const [isSignUp, setIsSignUp] = useState(
+    params.mode ? params.mode === 'signup' : initialMode === 'signup'
+  );
   const [fullName, setFullName] = useState('');
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(params.email || '');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
@@ -207,15 +212,20 @@ export default function AuthScreen({ initialMode = 'signin' }: AuthScreenProps) 
     }
   };
 
-  const handleProceedToSignInFromSuccess = () => {
-    const savedEmail = registeredUser?.email || email.trim();
+  const handleProceedToSignInFromSuccess = (userEmail?: string) => {
+    const savedEmail = userEmail || registeredUser?.email || email.trim();
     setRegisteredUser(null);
     setIsSignUp(false);
     setEmail(savedEmail);
     setPassword('');
     setFieldErrors({});
     setApiError(null);
-    setSuccessMessage('👋 Account registered! Enter your password to sign in.');
+    setSuccessMessage('📬 Verification email sent! Enter your password to sign in once confirmed.');
+  };
+
+  const handleChangeEmailFromSuccess = () => {
+    setRegisteredUser(null);
+    setIsSignUp(true);
   };
 
   const getInputContainerStyle = (fieldName: FieldName) => {
@@ -255,31 +265,35 @@ export default function AuthScreen({ initialMode = 'signin' }: AuthScreenProps) 
         >
           <View style={styles.mobileContainer}>
             {/* Header Brand */}
-            <View style={styles.header}>
-              <View style={styles.neoExtrudedCircle}>
-                <Flame size={28} color="#10B981" />
-              </View>
+            {!registeredUser ? (
+              <View style={styles.header}>
+                <View style={styles.neoExtrudedCircle}>
+                  <Flame size={28} color="#10B981" />
+                </View>
 
-              <View style={styles.pillBadge}>
-                <Sparkles size={12} color="#34D399" />
-                <Text style={styles.pillBadgeText}>AI METABOLIC COACHING</Text>
-              </View>
+                <View style={styles.pillBadge}>
+                  <Sparkles size={12} color="#34D399" />
+                  <Text style={styles.pillBadgeText}>AI METABOLIC COACHING</Text>
+                </View>
 
-              <Text style={styles.title}>
-                {registeredUser
-                  ? 'Registration Complete'
-                  : isSignUp
-                  ? "Let's build your blueprint"
-                  : 'Welcome back, Champ'}
-              </Text>
-              <Text style={styles.subtitle}>
-                {registeredUser
-                  ? 'Your athletic account is created and ready for biometric calibration.'
-                  : isSignUp
-                  ? 'Personalized nutrition, biometric calibration, and training intelligence.'
-                  : 'Sign in to access your daily calorie targets and workout analytics.'}
-              </Text>
-            </View>
+                <Text style={styles.title}>
+                  {isSignUp
+                    ? "Let's build your blueprint"
+                    : 'Welcome back, Champ'}
+                </Text>
+                <Text style={styles.subtitle}>
+                  {isSignUp
+                    ? 'Personalized nutrition, biometric calibration, and training intelligence.'
+                    : 'Sign in to access your daily calorie targets and workout analytics.'}
+                </Text>
+              </View>
+            ) : (
+              <View style={[styles.header, { marginBottom: 16 }]}>
+                <View style={styles.neoExtrudedCircle}>
+                  <Flame size={28} color="#10B981" />
+                </View>
+              </View>
+            )}
 
             {/* Neumorphic Recessed Switcher (Hidden during Success state) */}
             {!registeredUser && (
@@ -332,53 +346,12 @@ export default function AuthScreen({ initialMode = 'signin' }: AuthScreenProps) 
             <View style={styles.neoCard}>
               {/* DEDICATED REGISTRATION SUCCESS VIEW */}
               {registeredUser ? (
-                <View style={styles.successScreenContent}>
-                  <View style={styles.successIconBadge}>
-                    <CheckCircle2 size={44} color="#10B981" strokeWidth={2.4} />
-                  </View>
-
-                  <Text style={styles.successHeaderTitle}>Account Registered! 🎉</Text>
-                  <Text style={styles.successHeaderSubtitle}>
-                    Welcome aboard, <Text style={styles.highlightName}>{registeredUser.fullName || 'Athlete'}</Text>!
-                  </Text>
-
-                  <View style={styles.successDetailsBox}>
-                    <View style={styles.successDetailRow}>
-                      <Mail size={16} color="#10B981" />
-                      <Text style={styles.successEmailText}>{registeredUser.email}</Text>
-                    </View>
-                    <View style={styles.statusIndicatorRow}>
-                      <View style={styles.statusDot} />
-                      <Text style={styles.statusBadgeText}>Database Profile Created</Text>
-                    </View>
-                  </View>
-
-                  <View style={styles.infoNoticeBox}>
-                    <Sparkles size={16} color="#34D399" style={{ marginTop: 2 }} />
-                    <Text style={styles.infoNoticeText}>
-                      Your account is all set! Click the button below to sign in with your password and begin your biometric calibration wizard.
-                    </Text>
-                  </View>
-
-                  {/* Note about Supabase email confirmation if applicable */}
-                  <View style={styles.verificationNoteBox}>
-                    <Text style={styles.verificationNoteText}>
-                      💡 <Text style={{ fontWeight: '700', color: '#94A3B8' }}>Note:</Text> If your Supabase database requires email verification, please also check your email inbox to verify the link.
-                    </Text>
-                  </View>
-
-                  {/* Primary Redirect to Login Button */}
-                  <TouchableOpacity
-                    onPress={handleProceedToSignInFromSuccess}
-                    style={styles.neoButton}
-                    activeOpacity={0.88}
-                  >
-                    <View style={styles.buttonContent}>
-                      <Text style={styles.neoButtonText}>Proceed to Sign In</Text>
-                      <ArrowRight size={20} color="#052E16" strokeWidth={2.8} />
-                    </View>
-                  </TouchableOpacity>
-                </View>
+                <RegistrationSuccessView
+                  email={registeredUser.email}
+                  fullName={registeredUser.fullName}
+                  onProceedToLogin={handleProceedToSignInFromSuccess}
+                  onChangeEmail={handleChangeEmailFromSuccess}
+                />
               ) : (
                 /* REGULAR AUTH FORM */
                 <>
@@ -745,128 +718,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.65,
     shadowRadius: 20,
     elevation: 8,
-  },
-  // SUCCESS VIEW STYLES
-  successScreenContent: {
-    alignItems: 'center',
-    paddingVertical: 8,
-  },
-  successIconBadge: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
-    backgroundColor: '#161B26',
-    borderTopWidth: 2,
-    borderLeftWidth: 2,
-    borderTopColor: 'rgba(52, 211, 153, 0.3)',
-    borderLeftColor: 'rgba(52, 211, 153, 0.2)',
-    borderBottomWidth: 2.5,
-    borderRightWidth: 2.5,
-    borderBottomColor: '#064E3B',
-    borderRightColor: '#064E3B',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-    shadowColor: '#10B981',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.35,
-    shadowRadius: 14,
-    elevation: 6,
-  },
-  successHeaderTitle: {
-    fontSize: 22,
-    fontWeight: '900',
-    color: '#F8FAFC',
-    textAlign: 'center',
-    letterSpacing: -0.4,
-  },
-  successHeaderSubtitle: {
-    fontSize: 14,
-    color: '#94A3B8',
-    textAlign: 'center',
-    marginTop: 6,
-    marginBottom: 18,
-  },
-  highlightName: {
-    color: '#34D399',
-    fontWeight: '700',
-  },
-  successDetailsBox: {
-    width: '100%',
-    backgroundColor: '#11151F',
-    borderRadius: 16,
-    padding: 14,
-    borderTopWidth: 1.5,
-    borderLeftWidth: 1.5,
-    borderTopColor: '#090C12',
-    borderLeftColor: '#090C12',
-    borderBottomWidth: 1,
-    borderRightWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.06)',
-    borderRightColor: 'rgba(255, 255, 255, 0.04)',
-    marginBottom: 14,
-    gap: 8,
-  },
-  successDetailRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  successEmailText: {
-    color: '#F1F5F9',
-    fontSize: 14,
-    fontWeight: '700',
-    letterSpacing: 0.2,
-  },
-  statusIndicatorRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginTop: 2,
-  },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#10B981',
-  },
-  statusBadgeText: {
-    color: '#34D399',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  infoNoticeBox: {
-    width: '100%',
-    backgroundColor: 'rgba(16, 185, 129, 0.1)',
-    borderRadius: 14,
-    padding: 14,
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(52, 211, 153, 0.25)',
-    marginBottom: 12,
-  },
-  infoNoticeText: {
-    flex: 1,
-    color: '#E2E8F0',
-    fontSize: 12.5,
-    lineHeight: 18,
-    fontWeight: '500',
-  },
-  verificationNoteBox: {
-    width: '100%',
-    backgroundColor: 'rgba(15, 23, 42, 0.6)',
-    borderRadius: 12,
-    padding: 11,
-    marginBottom: 18,
-    borderWidth: 1,
-    borderColor: 'rgba(148, 163, 184, 0.15)',
-  },
-  verificationNoteText: {
-    color: '#64748B',
-    fontSize: 11.5,
-    lineHeight: 16,
   },
   // UNCONFIRMED EMAIL BOX STYLES
   unconfirmedEmailBox: {
