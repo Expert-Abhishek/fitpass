@@ -1,33 +1,56 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   StyleSheet,
   View,
-  Text,
-  TouchableOpacity,
   ScrollView,
   Alert,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import {
-  Flame,
-  Activity,
-  HeartPulse,
-  Dumbbell,
-  Sparkles,
-  LogOut,
-  ChevronRight,
-  TrendingUp,
-  Zap,
-} from 'lucide-react-native';
+import { NeuTheme } from '../../src/theme/neumorphic';
 import { useAuthStore } from '../../src/stores/authStore';
+import DashboardHeader from '../../src/components/dashboard/DashboardHeader';
+import HeroActionTiles from '../../src/components/dashboard/HeroActionTiles';
+import MacroBreakdown, { MacroData } from '../../src/components/dashboard/MacroBreakdown';
+import WaterTracker from '../../src/components/dashboard/WaterTracker';
+import EnergyBalanceChart from '../../src/components/dashboard/EnergyBalanceChart';
+import AIPostureInsightChip from '../../src/components/dashboard/AIPostureInsightChip';
+import AddMealModal, { NewMealPayload } from '../../src/components/dashboard/AddMealModal';
 
 export default function DashboardScreen() {
   const router = useRouter();
   const { profile, authUser, latestAssessment, signOut } = useAuthStore();
 
+  // Selected date state
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+
+  // Dynamic Macro & Calorie State
+  const targetCalories = latestAssessment?.bmr
+    ? Math.round(Number(latestAssessment.bmr) * 1.35)
+    : 2400;
+
+  const [macroData, setMacroData] = useState<MacroData>({
+    caloriesConsumed: 1840,
+    caloriesTarget: targetCalories,
+    caloriesBurned: 620,
+    protein: { current: 125, target: 160 },
+    carbs: { current: 195, target: 240 },
+    fats: { current: 52, target: 70 },
+    fiber: { current: 28, target: 35 },
+  });
+
+  // Water intake state
+  const [waterMl, setWaterMl] = useState<number>(1750);
+  const targetWaterMl = 3000;
+
+  // Add Meal modal state
+  const [isAddMealVisible, setIsAddMealVisible] = useState(false);
+  const [loggedMealsCount, setLoggedMealsCount] = useState(2);
+
+  // Sign out confirmation
   const handleSignOut = () => {
-    Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
+    Alert.alert('Sign Out', 'Are you sure you want to sign out of FitPass?', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Sign Out',
@@ -39,140 +62,94 @@ export default function DashboardScreen() {
     ]);
   };
 
-  const getGoalInfo = (goal?: string) => {
-    switch (goal) {
-      case 'WEIGHT_LOSS':
-        return { label: 'Fat Loss Deficit', color: '#F59E0B', icon: Flame };
-      case 'MUSCLE_GAIN':
-        return { label: 'Hypertrophy Surplus', color: '#10B981', icon: Dumbbell };
-      case 'MAINTENANCE':
-        return { label: 'Metabolic Balance', color: '#06B6D4', icon: HeartPulse };
-      default:
-        return { label: 'Custom Blueprint', color: '#818CF8', icon: Zap };
-    }
+  // Water increment handler
+  const handleAddWater = (deltaMl: number) => {
+    setWaterMl((prev) => Math.max(0, Math.min(6000, prev + deltaMl)));
   };
 
-  const goalInfo = getGoalInfo(latestAssessment?.target_goal);
+  // New meal logging handler
+  const handleSaveMeal = (meal: NewMealPayload) => {
+    setMacroData((prev) => ({
+      ...prev,
+      caloriesConsumed: prev.caloriesConsumed + meal.calories,
+      protein: { ...prev.protein, current: prev.protein.current + meal.protein },
+      carbs: { ...prev.carbs, current: prev.carbs.current + meal.carbs },
+      fats: { ...prev.fats, current: prev.fats.current + meal.fats },
+    }));
+    setLoggedMealsCount((prev) => prev + 1);
+
+    Alert.alert('Meal Logged! 🎉', `${meal.name} (+${meal.calories} kcal) added to your blueprint.`);
+  };
+
+  const handleStartWorkout = () => {
+    Alert.alert(
+      'AI Workout Engine',
+      'Module 2 Realtime Pose Detection & Rep Counter is ready to calibrate your movements.'
+    );
+  };
+
+  const handleSnapPhotoAI = () => {
+    Alert.alert(
+      'AI Meal Scanner',
+      'Module 3 Computer Vision meal scanning will auto-estimate food volume, calories, and macros.'
+    );
+  };
+
+  const athleteName = profile?.full_name || authUser?.email?.split('@')[0] || 'Athlete';
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.mobileContainer}>
-          {/* Top App Bar */}
-          <View style={styles.appBar}>
-            <View style={styles.brandGroup}>
-              <View style={styles.brandIcon}>
-                <Flame size={20} color="#10B981" />
-              </View>
-              <View>
-                <Text style={styles.brandTitle}>FITPASS CORE</Text>
-                <Text style={styles.userName}>
-                  {profile?.full_name || authUser?.email?.split('@')[0] || 'Athlete'}
-                </Text>
-              </View>
-            </View>
+          {/* Header with Greeting, Streak & Date Carousel */}
+          <DashboardHeader
+            userName={athleteName}
+            streakDays={7}
+            selectedDate={selectedDate}
+            onSelectDate={setSelectedDate}
+            onSignOut={handleSignOut}
+          />
 
-            <TouchableOpacity
-              onPress={handleSignOut}
-              style={styles.logoutBtn}
-              activeOpacity={0.8}
-            >
-              <LogOut size={16} color="#94A3B8" />
-            </TouchableOpacity>
-          </View>
+          {/* Primary Hero Action Tiles: Workouts & Diet */}
+          <HeroActionTiles
+            onStartWorkout={handleStartWorkout}
+            onOpenDietTracker={() => setIsAddMealVisible(true)}
+            completedRepsToday={45}
+            targetRepsToday={80}
+            loggedMealsCount={loggedMealsCount}
+          />
 
-          {/* Motivational Status Card */}
-          <View style={styles.statusCard}>
-            <View style={styles.statusCardTop}>
-              <View style={styles.statusBadgeGroup}>
-                <Sparkles size={13} color="#34D399" />
-                <Text style={styles.statusBadgeText}>ACTIVE BLUEPRINT CALIBRATED</Text>
-              </View>
-              <View style={[styles.goalTag, { backgroundColor: '#11151F' }]}>
-                <Text style={[styles.goalTagText, { color: goalInfo.color }]}>
-                  {goalInfo.label}
-                </Text>
-              </View>
-            </View>
-            <Text style={styles.statusDesc}>
-              Your personalized metabolic targets and workouts are synchronized with Supabase PostgreSQL.
-            </Text>
-          </View>
+          {/* Nutrition & Macro Overview Section */}
+          <MacroBreakdown
+            data={macroData}
+            onAddMealPress={() => setIsAddMealVisible(true)}
+          />
 
-          {/* Biometrics Summary Card */}
-          <View style={styles.metricsHeroCard}>
-            <Text style={styles.cardHeaderTitle}>METABOLIC SNAPSHOT</Text>
+          {/* Smart Water Intake Tracker */}
+          <WaterTracker
+            currentMl={waterMl}
+            targetMl={targetWaterMl}
+            onAddWater={handleAddWater}
+          />
 
-            <View style={styles.metricsGrid}>
-              {/* BMR Card */}
-              <View style={styles.metricGridItem}>
-                <View style={styles.metricGridHeader}>
-                  <Flame size={16} color="#10B981" />
-                  <Text style={styles.metricGridTag}>RESTING BURN</Text>
-                </View>
-                <Text style={styles.metricGridValue}>
-                  {latestAssessment?.bmr ? Math.round(Number(latestAssessment.bmr)) : '--'}
-                </Text>
-                <Text style={styles.metricGridUnit}>kcal / day base</Text>
-              </View>
+          {/* Burn vs Intake Energy Balance SVG Chart (Module 5) */}
+          <EnergyBalanceChart />
 
-              {/* BMI Card */}
-              <View style={styles.metricGridItem}>
-                <View style={styles.metricGridHeader}>
-                  <Activity size={16} color="#38BDF8" />
-                  <Text style={styles.metricGridTag}>BMI SCORE</Text>
-                </View>
-                <Text style={styles.metricGridValue}>
-                  {latestAssessment?.bmi ? Number(latestAssessment.bmi).toFixed(1) : '--'}
-                </Text>
-                <Text style={[styles.metricGridUnit, { color: '#34D399', fontWeight: '800' }]}>
-                  Quetelet Index
-                </Text>
-              </View>
-            </View>
-
-            {/* Quick Metrics Chips */}
-            <View style={styles.chipsRow}>
-              <View style={styles.chip}>
-                <Text style={styles.chipLabel}>Height:</Text>
-                <Text style={styles.chipValue}>{latestAssessment?.height_cm} cm</Text>
-              </View>
-              <View style={styles.chip}>
-                <Text style={styles.chipLabel}>Weight:</Text>
-                <Text style={styles.chipValue}>{latestAssessment?.weight_kg} kg</Text>
-              </View>
-              <View style={styles.chip}>
-                <Text style={styles.chipLabel}>Sex:</Text>
-                <Text style={styles.chipValue}>{latestAssessment?.gender}</Text>
-              </View>
-              <View style={styles.chip}>
-                <Text style={styles.chipLabel}>Age:</Text>
-                <Text style={styles.chipValue}>{latestAssessment?.age} yrs</Text>
-              </View>
-            </View>
-          </View>
-
-          {/* Quick Actions */}
-          <Text style={styles.cardHeaderTitle}>ONBOARDING ACTIONS</Text>
-
-          <TouchableOpacity
-            onPress={() => router.push('/(onboarding)/assessment')}
-            style={styles.actionCard}
-            activeOpacity={0.85}
-          >
-            <View style={styles.actionLeft}>
-              <View style={styles.actionIconBox}>
-                <TrendingUp size={18} color="#10B981" />
-              </View>
-              <View>
-                <Text style={styles.actionTitle}>Recalibrate Biometrics</Text>
-                <Text style={styles.actionSubtitle}>Update your weight, height, or goal</Text>
-              </View>
-            </View>
-            <ChevronRight size={18} color="#64748B" />
-          </TouchableOpacity>
+          {/* AI Posture & Biomechanical Form Insight Chip */}
+          <AIPostureInsightChip />
         </View>
       </ScrollView>
+
+      {/* Add Meal Bottom Sheet Modal */}
+      <AddMealModal
+        visible={isAddMealVisible}
+        onClose={() => setIsAddMealVisible(false)}
+        onSaveMeal={handleSaveMeal}
+        onSnapPhotoAI={handleSnapPhotoAI}
+      />
     </SafeAreaView>
   );
 }
@@ -180,285 +157,16 @@ export default function DashboardScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#161B26',
+    backgroundColor: NeuTheme.colors.background,
   },
   scrollContent: {
     flexGrow: 1,
-    paddingVertical: 20,
+    paddingVertical: 14,
     paddingHorizontal: 16,
   },
   mobileContainer: {
     width: '100%',
     maxWidth: 440,
     marginHorizontal: 'auto',
-  },
-  appBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  brandGroup: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  brandIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 14,
-    backgroundColor: '#161B26',
-    borderTopWidth: 1.5,
-    borderLeftWidth: 1.5,
-    borderTopColor: 'rgba(255, 255, 255, 0.12)',
-    borderLeftColor: 'rgba(255, 255, 255, 0.08)',
-    borderBottomWidth: 2,
-    borderRightWidth: 2,
-    borderBottomColor: '#090C12',
-    borderRightColor: '#090C12',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000000',
-    shadowOffset: { width: 3, height: 3 },
-    shadowOpacity: 0.5,
-    shadowRadius: 6,
-  },
-  brandTitle: {
-    color: '#64748B',
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 1,
-  },
-  userName: {
-    color: '#F8FAFC',
-    fontSize: 20,
-    fontWeight: '900',
-  },
-  logoutBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 14,
-    backgroundColor: '#161B26',
-    borderTopWidth: 1.5,
-    borderLeftWidth: 1.5,
-    borderTopColor: 'rgba(255, 255, 255, 0.12)',
-    borderLeftColor: 'rgba(255, 255, 255, 0.08)',
-    borderBottomWidth: 2,
-    borderRightWidth: 2,
-    borderBottomColor: '#090C12',
-    borderRightColor: '#090C12',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000000',
-    shadowOffset: { width: 3, height: 3 },
-    shadowOpacity: 0.5,
-    shadowRadius: 6,
-  },
-  statusCard: {
-    backgroundColor: '#161B26',
-    borderRadius: 20,
-    padding: 16,
-    marginBottom: 20,
-    borderTopWidth: 1.5,
-    borderLeftWidth: 1.5,
-    borderTopColor: 'rgba(52, 211, 153, 0.3)',
-    borderLeftColor: 'rgba(52, 211, 153, 0.2)',
-    borderBottomWidth: 2,
-    borderRightWidth: 2,
-    borderBottomColor: '#064E3B',
-    borderRightColor: '#064E3B',
-    shadowColor: '#000000',
-    shadowOffset: { width: 5, height: 5 },
-    shadowOpacity: 0.5,
-    shadowRadius: 10,
-    elevation: 4,
-  },
-  statusCardTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  statusBadgeGroup: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  statusBadgeText: {
-    color: '#34D399',
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0.6,
-  },
-  goalTag: {
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderRadius: 12,
-    borderTopWidth: 1,
-    borderLeftWidth: 1,
-    borderTopColor: '#090C12',
-    borderLeftColor: '#090C12',
-    borderBottomWidth: 1,
-    borderRightWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.06)',
-    borderRightColor: 'rgba(255, 255, 255, 0.06)',
-  },
-  goalTagText: {
-    fontSize: 10,
-    fontWeight: '800',
-  },
-  statusDesc: {
-    color: '#CBD5E1',
-    fontSize: 12,
-    lineHeight: 16,
-  },
-  metricsHeroCard: {
-    backgroundColor: '#161B26',
-    borderRadius: 22,
-    padding: 18,
-    marginBottom: 20,
-    borderTopWidth: 1.5,
-    borderLeftWidth: 1.5,
-    borderTopColor: 'rgba(255, 255, 255, 0.1)',
-    borderLeftColor: 'rgba(255, 255, 255, 0.07)',
-    borderBottomWidth: 2,
-    borderRightWidth: 2,
-    borderBottomColor: '#090C12',
-    borderRightColor: '#090C12',
-    shadowColor: '#000000',
-    shadowOffset: { width: 5, height: 5 },
-    shadowOpacity: 0.5,
-    shadowRadius: 10,
-  },
-  cardHeaderTitle: {
-    color: '#64748B',
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 0.8,
-    marginBottom: 12,
-  },
-  metricsGrid: {
-    flexDirection: 'row',
-    gap: 10,
-    marginBottom: 14,
-  },
-  metricGridItem: {
-    flex: 1,
-    backgroundColor: '#11151F',
-    borderTopWidth: 1.5,
-    borderLeftWidth: 1.5,
-    borderTopColor: '#090C12',
-    borderLeftColor: '#090C12',
-    borderBottomWidth: 1,
-    borderRightWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.06)',
-    borderRightColor: 'rgba(255, 255, 255, 0.06)',
-    borderRadius: 16,
-    padding: 14,
-  },
-  metricGridHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 6,
-  },
-  metricGridTag: {
-    color: '#64748B',
-    fontSize: 9,
-    fontWeight: '800',
-    letterSpacing: 0.5,
-  },
-  metricGridValue: {
-    color: '#F8FAFC',
-    fontSize: 28,
-    fontWeight: '900',
-  },
-  metricGridUnit: {
-    color: '#94A3B8',
-    fontSize: 11,
-    marginTop: 2,
-  },
-  chipsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
-  chip: {
-    flexDirection: 'row',
-    backgroundColor: '#11151F',
-    borderTopWidth: 1,
-    borderLeftWidth: 1,
-    borderTopColor: '#090C12',
-    borderLeftColor: '#090C12',
-    borderBottomWidth: 1,
-    borderRightWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.06)',
-    borderRightColor: 'rgba(255, 255, 255, 0.06)',
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    gap: 4,
-  },
-  chipLabel: {
-    color: '#64748B',
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  chipValue: {
-    color: '#F8FAFC',
-    fontSize: 11,
-    fontWeight: '800',
-  },
-  actionCard: {
-    backgroundColor: '#161B26',
-    borderTopWidth: 1.5,
-    borderLeftWidth: 1.5,
-    borderTopColor: 'rgba(255, 255, 255, 0.1)',
-    borderLeftColor: 'rgba(255, 255, 255, 0.07)',
-    borderBottomWidth: 2,
-    borderRightWidth: 2,
-    borderBottomColor: '#090C12',
-    borderRightColor: '#090C12',
-    borderRadius: 18,
-    padding: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-    shadowColor: '#000000',
-    shadowOffset: { width: 4, height: 4 },
-    shadowOpacity: 0.5,
-    shadowRadius: 8,
-  },
-  actionLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  actionIconBox: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    backgroundColor: '#11151F',
-    borderTopWidth: 1,
-    borderLeftWidth: 1,
-    borderTopColor: '#090C12',
-    borderLeftColor: '#090C12',
-    borderBottomWidth: 1,
-    borderRightWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.06)',
-    borderRightColor: 'rgba(255, 255, 255, 0.06)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  actionTitle: {
-    color: '#F8FAFC',
-    fontSize: 14,
-    fontWeight: '800',
-  },
-  actionSubtitle: {
-    color: '#64748B',
-    fontSize: 11,
-    marginTop: 1,
   },
 });

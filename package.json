@@ -1,18 +1,19 @@
 {
   "name": "fitness-app-monorepo",
   "version": "1.0.0",
+  "main": "apps/mobile/index.js",
   "private": true,
   "scripts": {
-    "start": "pnpm --filter @fitness/mobile dev",
-    "dev": "turbo run dev",
-    "dev:mobile": "pnpm --filter @fitness/mobile dev",
-    "dev:tunnel": "pnpm --filter @fitness/mobile dev -- --tunnel",
-    "android": "pnpm --filter @fitness/mobile android",
-    "ios": "pnpm --filter @fitness/mobile ios",
-    "web": "pnpm --filter @fitness/mobile web",
+    "start": "npm --prefix apps/mobile start",
+    "dev": "npm --prefix apps/mobile run dev",
+    "dev:mobile": "npm --prefix apps/mobile run dev",
+    "dev:tunnel": "npm --prefix apps/mobile run dev -- --tunnel",
+    "android": "npm --prefix apps/mobile run android",
+    "ios": "npm --prefix apps/mobile run ios",
+    "web": "npm --prefix apps/mobile run web",
     "build": "turbo run build",
     "lint": "turbo run lint",
-    "typecheck": "turbo run typecheck",
+    "typecheck": "npm --prefix apps/mobile run typecheck",
     "clean": "turbo run clean"
   },
   "devDependencies": {

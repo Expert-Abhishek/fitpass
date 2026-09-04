@@ -29,7 +29,9 @@ import {
 } from 'lucide-react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { useAuthStore } from '../../src/stores/authStore';
+import { NeuTheme } from '../../src/theme/neumorphic';
 import RegistrationSuccessView from '../../src/components/RegistrationSuccessView';
+import NeuCard from '../../src/components/neumorphic/NeuCard';
 
 type FieldName = 'fullName' | 'email' | 'password';
 
@@ -165,12 +167,10 @@ export default function AuthScreen({ initialMode = 'signin' }: AuthScreenProps) 
         return;
       }
 
-      // If user was immediately confirmed and authenticated
       if (isConfirmed) {
         return;
       }
 
-      // Show dedicated high-visibility Registration Success View
       setRegisteredUser({
         email: cleanEmail,
         fullName: cleanName,
@@ -239,15 +239,14 @@ export default function AuthScreen({ initialMode = 'signin' }: AuthScreenProps) 
   };
 
   const getIconColor = (fieldName: FieldName) => {
-    if (fieldErrors[fieldName]) return '#F87171';
-    if (focusedField === fieldName) return '#10B981';
-    return '#64748B';
+    if (fieldErrors[fieldName]) return '#EF4444';
+    if (focusedField === fieldName) return NeuTheme.colors.emerald;
+    return NeuTheme.colors.textMuted;
   };
 
   const activeTopError = apiError || serverStoreError;
 
-  // Compute sliding pill dimensions (account for 6px padding)
-  const tabWidth = switcherWidth > 0 ? (switcherWidth - 12) / 2 : 0;
+  const tabWidth = switcherWidth > 0 ? (switcherWidth - 10) / 2 : 0;
   const translateX = slideAnim.interpolate({
     inputRange: [0, 1],
     outputRange: [0, tabWidth],
@@ -262,17 +261,18 @@ export default function AuthScreen({ initialMode = 'signin' }: AuthScreenProps) 
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
           <View style={styles.mobileContainer}>
             {/* Header Brand */}
             {!registeredUser ? (
               <View style={styles.header}>
                 <View style={styles.neoExtrudedCircle}>
-                  <Flame size={28} color="#10B981" />
+                  <Flame size={26} color={NeuTheme.colors.emerald} />
                 </View>
 
                 <View style={styles.pillBadge}>
-                  <Sparkles size={12} color="#34D399" />
+                  <Sparkles size={12} color="#059669" />
                   <Text style={styles.pillBadgeText}>AI METABOLIC COACHING</Text>
                 </View>
 
@@ -288,63 +288,64 @@ export default function AuthScreen({ initialMode = 'signin' }: AuthScreenProps) 
                 </Text>
               </View>
             ) : (
-              <View style={[styles.header, { marginBottom: 16 }]}>
+              <View style={[styles.header, { marginBottom: 14 }]}>
                 <View style={styles.neoExtrudedCircle}>
-                  <Flame size={28} color="#10B981" />
+                  <Flame size={26} color={NeuTheme.colors.emerald} />
                 </View>
               </View>
             )}
 
             {/* Neumorphic Recessed Switcher (Hidden during Success state) */}
             {!registeredUser && (
-              <View style={styles.neoRecessedSwitcher} onLayout={onSwitcherLayout}>
-                {tabWidth > 0 && (
-                  <Animated.View
-                    style={[
-                      styles.neoSlidingPill,
-                      {
-                        width: tabWidth,
-                        transform: [{ translateX }],
-                      },
-                    ]}
-                  />
-                )}
+              <NeuCard variant="inset" padding={4} borderRadius={18} style={styles.neoRecessedSwitcher}>
+                <View style={{ flex: 1, flexDirection: 'row' }} onLayout={onSwitcherLayout}>
+                  {tabWidth > 0 && (
+                    <Animated.View
+                      style={[
+                        styles.neoSlidingPill,
+                        {
+                          width: tabWidth,
+                          transform: [{ translateX }],
+                        },
+                      ]}
+                    />
+                  )}
 
-                <TouchableOpacity
-                  onPress={() => handleToggleMode(false)}
-                  style={styles.switchTab}
-                  activeOpacity={0.85}
-                >
-                  <Text
-                    style={[
-                      styles.switchText,
-                      !isSignUp && styles.switchTextActive,
-                    ]}
+                  <TouchableOpacity
+                    onPress={() => handleToggleMode(false)}
+                    style={styles.switchTab}
+                    activeOpacity={0.85}
                   >
-                    Sign In
-                  </Text>
-                </TouchableOpacity>
+                    <Text
+                      style={[
+                        styles.switchText,
+                        !isSignUp && styles.switchTextActive,
+                      ]}
+                    >
+                      Sign In
+                    </Text>
+                  </TouchableOpacity>
 
-                <TouchableOpacity
-                  onPress={() => handleToggleMode(true)}
-                  style={styles.switchTab}
-                  activeOpacity={0.85}
-                >
-                  <Text
-                    style={[
-                      styles.switchText,
-                      isSignUp && styles.switchTextActive,
-                    ]}
+                  <TouchableOpacity
+                    onPress={() => handleToggleMode(true)}
+                    style={styles.switchTab}
+                    activeOpacity={0.85}
                   >
-                    Create Account
-                  </Text>
-                </TouchableOpacity>
-              </View>
+                    <Text
+                      style={[
+                        styles.switchText,
+                        isSignUp && styles.switchTextActive,
+                      ]}
+                    >
+                      Create Account
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </NeuCard>
             )}
 
             {/* Neumorphic Form / Success Card */}
-            <View style={styles.neoCard}>
-              {/* DEDICATED REGISTRATION SUCCESS VIEW */}
+            <NeuCard variant="raised" padding={18} borderRadius={24} style={styles.neoCard}>
               {registeredUser ? (
                 <RegistrationSuccessView
                   email={registeredUser.email}
@@ -353,12 +354,11 @@ export default function AuthScreen({ initialMode = 'signin' }: AuthScreenProps) 
                   onChangeEmail={handleChangeEmailFromSuccess}
                 />
               ) : (
-                /* REGULAR AUTH FORM */
                 <>
                   {/* Success Notification Banner */}
                   {successMessage && (
                     <View style={styles.successBox}>
-                      <CheckCircle2 size={18} color="#10B981" style={{ marginTop: 2 }} />
+                      <CheckCircle2 size={16} color="#047857" style={{ marginTop: 2 }} />
                       <View style={styles.successTextGroup}>
                         <Text style={styles.successTitle}>Ready to Sign In</Text>
                         <Text style={styles.successText}>{successMessage}</Text>
@@ -370,11 +370,11 @@ export default function AuthScreen({ initialMode = 'signin' }: AuthScreenProps) 
                   {activeTopError === 'EMAIL_NOT_CONFIRMED' && (
                     <View style={styles.unconfirmedEmailBox}>
                       <View style={styles.unconfirmedHeader}>
-                        <AlertCircle size={20} color="#FBBF24" />
+                        <AlertCircle size={18} color="#D97706" />
                         <Text style={styles.unconfirmedTitle}>Email Verification Required</Text>
                       </View>
                       <Text style={styles.unconfirmedText}>
-                        Your email address has not been confirmed yet. Please check your inbox & spam folder for the Supabase confirmation email.
+                        Your email address has not been confirmed yet. Please check your inbox & spam folder for the confirmation email.
                       </Text>
 
                       <TouchableOpacity
@@ -384,25 +384,21 @@ export default function AuthScreen({ initialMode = 'signin' }: AuthScreenProps) 
                         activeOpacity={0.8}
                       >
                         {isResending ? (
-                          <ActivityIndicator size="small" color="#FBBF24" />
+                          <ActivityIndicator size="small" color="#B45309" />
                         ) : (
                           <>
-                            <Send size={14} color="#FDE68A" />
+                            <Send size={13} color="#92400E" />
                             <Text style={styles.resendBtnText}>Resend Confirmation Link</Text>
                           </>
                         )}
                       </TouchableOpacity>
-
-                      <Text style={styles.devHintText}>
-                        ⚙️ Dev Tip: In Supabase Dashboard &gt; Auth &gt; Providers &gt; Email, turn off "Confirm email" for instant login.
-                      </Text>
                     </View>
                   )}
 
                   {/* Resend Status Message */}
                   {resendStatus && (
                     <View style={styles.resendStatusBox}>
-                      <CheckCircle2 size={15} color="#34D399" />
+                      <CheckCircle2 size={14} color="#047857" />
                       <Text style={styles.resendStatusText}>{resendStatus}</Text>
                     </View>
                   )}
@@ -410,7 +406,7 @@ export default function AuthScreen({ initialMode = 'signin' }: AuthScreenProps) 
                   {/* Standard API / Validation Error */}
                   {activeTopError && activeTopError !== 'EMAIL_NOT_CONFIRMED' && (
                     <View style={styles.apiErrorBox}>
-                      <AlertCircle size={16} color="#F87171" />
+                      <AlertCircle size={15} color="#DC2626" />
                       <Text style={styles.apiErrorText}>{activeTopError}</Text>
                     </View>
                   )}
@@ -420,14 +416,14 @@ export default function AuthScreen({ initialMode = 'signin' }: AuthScreenProps) 
                     <View style={styles.fieldGroup}>
                       <Text style={styles.label}>YOUR FULL NAME</Text>
                       <View style={getInputContainerStyle('fullName')}>
-                        <User size={18} color={getIconColor('fullName')} />
+                        <User size={17} color={getIconColor('fullName')} />
                         <TextInput
                           style={styles.textInput}
                           placeholder="Alex Johnson"
-                          placeholderTextColor="#475569"
+                          placeholderTextColor={NeuTheme.colors.textMuted}
                           autoCapitalize="words"
                           autoComplete="off"
-                          selectionColor="#10B981"
+                          selectionColor={NeuTheme.colors.emerald}
                           value={fullName}
                           onFocus={() => setFocusedField('fullName')}
                           onBlur={() => setFocusedField(null)}
@@ -439,7 +435,7 @@ export default function AuthScreen({ initialMode = 'signin' }: AuthScreenProps) 
                       </View>
                       {fieldErrors.fullName ? (
                         <View style={styles.fieldErrorRow}>
-                          <AlertCircle size={13} color="#F87171" />
+                          <AlertCircle size={12} color="#EF4444" />
                           <Text style={styles.fieldErrorText}>{fieldErrors.fullName}</Text>
                         </View>
                       ) : null}
@@ -450,16 +446,16 @@ export default function AuthScreen({ initialMode = 'signin' }: AuthScreenProps) 
                   <View style={styles.fieldGroup}>
                     <Text style={styles.label}>EMAIL ADDRESS</Text>
                     <View style={getInputContainerStyle('email')}>
-                      <Mail size={18} color={getIconColor('email')} />
+                      <Mail size={17} color={getIconColor('email')} />
                       <TextInput
                         style={styles.textInput}
                         placeholder="athlete@domain.com"
-                        placeholderTextColor="#475569"
+                        placeholderTextColor={NeuTheme.colors.textMuted}
                         keyboardType="email-address"
                         autoCapitalize="none"
                         autoCorrect={false}
                         autoComplete="off"
-                        selectionColor="#10B981"
+                        selectionColor={NeuTheme.colors.emerald}
                         value={email}
                         onFocus={() => setFocusedField('email')}
                         onBlur={() => setFocusedField(null)}
@@ -471,7 +467,7 @@ export default function AuthScreen({ initialMode = 'signin' }: AuthScreenProps) 
                     </View>
                     {fieldErrors.email ? (
                       <View style={styles.fieldErrorRow}>
-                        <AlertCircle size={13} color="#F87171" />
+                        <AlertCircle size={12} color="#EF4444" />
                         <Text style={styles.fieldErrorText}>{fieldErrors.email}</Text>
                       </View>
                     ) : null}
@@ -481,15 +477,15 @@ export default function AuthScreen({ initialMode = 'signin' }: AuthScreenProps) 
                   <View style={styles.fieldGroup}>
                     <Text style={styles.label}>PASSWORD</Text>
                     <View style={getInputContainerStyle('password')}>
-                      <Lock size={18} color={getIconColor('password')} />
+                      <Lock size={17} color={getIconColor('password')} />
                       <TextInput
                         style={styles.textInput}
                         placeholder="••••••••••••"
-                        placeholderTextColor="#475569"
+                        placeholderTextColor={NeuTheme.colors.textMuted}
                         secureTextEntry={!showPassword}
                         autoCapitalize="none"
                         autoComplete="off"
-                        selectionColor="#10B981"
+                        selectionColor={NeuTheme.colors.emerald}
                         value={password}
                         onFocus={() => setFocusedField('password')}
                         onBlur={() => setFocusedField(null)}
@@ -504,21 +500,21 @@ export default function AuthScreen({ initialMode = 'signin' }: AuthScreenProps) 
                         style={styles.eyeBtn}
                       >
                         {showPassword ? (
-                          <EyeOff size={18} color="#64748B" />
+                          <EyeOff size={17} color={NeuTheme.colors.textSecondary} />
                         ) : (
-                          <Eye size={18} color="#64748B" />
+                          <Eye size={17} color={NeuTheme.colors.textSecondary} />
                         )}
                       </TouchableOpacity>
                     </View>
                     {fieldErrors.password ? (
                       <View style={styles.fieldErrorRow}>
-                        <AlertCircle size={13} color="#F87171" />
+                        <AlertCircle size={12} color="#EF4444" />
                         <Text style={styles.fieldErrorText}>{fieldErrors.password}</Text>
                       </View>
                     ) : null}
                   </View>
 
-                  {/* Neumorphic Extruded Action Button */}
+                  {/* Action Button */}
                   <TouchableOpacity
                     onPress={handleSubmit}
                     disabled={isLoading}
@@ -526,25 +522,25 @@ export default function AuthScreen({ initialMode = 'signin' }: AuthScreenProps) 
                     activeOpacity={0.9}
                   >
                     {isLoading ? (
-                      <ActivityIndicator color="#090D16" size="small" />
+                      <ActivityIndicator color="#052E16" size="small" />
                     ) : (
                       <View style={styles.buttonContent}>
                         <Text style={styles.neoButtonText}>
                           {isSignUp ? 'Create My Blueprint' : 'Sign In to Dashboard'}
                         </Text>
-                        <ArrowRight size={19} color="#052E16" strokeWidth={2.8} />
+                        <ArrowRight size={18} color="#052E16" strokeWidth={2.8} />
                       </View>
                     )}
                   </TouchableOpacity>
                 </>
               )}
-            </View>
+            </NeuCard>
 
             {/* Security Guarantee */}
             <View style={styles.securityRow}>
-              <CheckCircle2 size={14} color="#10B981" />
+              <CheckCircle2 size={13} color="#059669" />
               <Text style={styles.securityText}>
-                End-to-end encrypted biometric PostgreSQL database security
+                End-to-end encrypted biometric PostgreSQL security
               </Text>
             </View>
           </View>
@@ -557,7 +553,7 @@ export default function AuthScreen({ initialMode = 'signin' }: AuthScreenProps) 
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#161B26', // Neumorphic Dark Steel Slate
+    backgroundColor: NeuTheme.colors.background,
   },
   keyboardContainer: {
     flex: 1,
@@ -565,7 +561,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
-    paddingVertical: 24,
+    paddingVertical: 20,
     paddingHorizontal: 16,
   },
   mobileContainer: {
@@ -575,116 +571,76 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 20,
   },
-  // Extruded Neumorphic Circle for Brand Icon
   neoExtrudedCircle: {
-    width: 62,
-    height: 62,
+    width: 56,
+    height: 56,
     borderRadius: 20,
-    backgroundColor: '#161B26',
+    backgroundColor: NeuTheme.colors.cardBackground,
+    ...NeuTheme.shadows.raised,
     borderTopWidth: 1.5,
     borderLeftWidth: 1.5,
-    borderTopColor: 'rgba(255, 255, 255, 0.12)',
-    borderLeftColor: 'rgba(255, 255, 255, 0.08)',
-    borderBottomWidth: 2,
-    borderRightWidth: 2,
-    borderBottomColor: '#0A0D13',
-    borderRightColor: '#0A0D13',
+    borderTopColor: 'rgba(255, 255, 255, 0.95)',
+    borderLeftColor: 'rgba(255, 255, 255, 0.95)',
+    borderBottomWidth: 1.5,
+    borderRightWidth: 1.5,
+    borderBottomColor: 'rgba(163, 177, 198, 0.4)',
+    borderRightColor: 'rgba(163, 177, 198, 0.4)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 14,
-    shadowColor: '#000000',
-    shadowOffset: { width: 6, height: 6 },
-    shadowOpacity: 0.6,
-    shadowRadius: 10,
-    elevation: 6,
+    marginBottom: 12,
   },
   pillBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#161B26',
-    borderTopWidth: 1,
-    borderLeftWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.09)',
-    borderLeftColor: 'rgba(255, 255, 255, 0.06)',
-    borderBottomWidth: 1.5,
-    borderRightWidth: 1.5,
-    borderBottomColor: '#0A0D13',
-    borderRightColor: '#0A0D13',
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 24,
-    marginBottom: 12,
-    gap: 6,
-    shadowColor: '#000000',
-    shadowOffset: { width: 3, height: 3 },
-    shadowOpacity: 0.4,
-    shadowRadius: 6,
+    backgroundColor: NeuTheme.colors.emeraldBg,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 20,
+    marginBottom: 10,
+    gap: 5,
   },
   pillBadgeText: {
-    color: '#94A3B8',
-    fontSize: 11,
+    color: '#065F46',
+    fontSize: 10.5,
     fontWeight: '800',
     letterSpacing: 0.8,
   },
   title: {
-    fontSize: 27,
+    fontSize: 24,
     fontWeight: '900',
-    color: '#F1F5F9',
+    color: NeuTheme.colors.textPrimary,
     textAlign: 'center',
-    letterSpacing: -0.6,
+    letterSpacing: -0.5,
   },
   subtitle: {
-    fontSize: 13,
-    color: '#94A3B8',
+    fontSize: 12.5,
+    color: NeuTheme.colors.textSecondary,
     textAlign: 'center',
-    marginTop: 6,
-    lineHeight: 19,
+    marginTop: 5,
+    lineHeight: 18,
     maxWidth: 320,
   },
-  // Recessed / Inset Channel for the Switcher
   neoRecessedSwitcher: {
-    position: 'relative',
-    flexDirection: 'row',
-    backgroundColor: '#11151F',
-    borderRadius: 18,
-    padding: 5,
-    borderTopWidth: 1.5,
-    borderLeftWidth: 1.5,
-    borderTopColor: '#090C12',
-    borderLeftColor: '#090C12',
-    borderBottomWidth: 1,
-    borderRightWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.06)',
-    borderRightColor: 'rgba(255, 255, 255, 0.04)',
-    marginBottom: 20,
+    marginBottom: 16,
   },
-  // Extruded Neumorphic Sliding Pill
   neoSlidingPill: {
     position: 'absolute',
-    top: 5,
-    bottom: 5,
-    left: 5,
-    backgroundColor: '#1B2230',
+    top: 0,
+    bottom: 0,
+    left: 0,
+    backgroundColor: '#FFFFFF',
     borderRadius: 14,
-    borderTopWidth: 1.5,
-    borderLeftWidth: 1.5,
-    borderTopColor: 'rgba(255, 255, 255, 0.16)',
-    borderLeftColor: 'rgba(255, 255, 255, 0.12)',
-    borderBottomWidth: 2,
-    borderRightWidth: 2,
-    borderBottomColor: '#090C12',
-    borderRightColor: '#090C12',
-    shadowColor: '#000000',
-    shadowOffset: { width: 4, height: 4 },
-    shadowOpacity: 0.5,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowColor: '#A3B1C6',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.45,
+    shadowRadius: 4,
+    elevation: 3,
   },
   switchTab: {
     flex: 1,
-    paddingVertical: 11,
+    paddingVertical: 10,
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
@@ -693,215 +649,157 @@ const styles = StyleSheet.create({
   switchText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#64748B',
-    letterSpacing: 0.2,
+    color: NeuTheme.colors.textSecondary,
   },
   switchTextActive: {
-    color: '#F8FAFC',
-    fontWeight: '800',
+    color: NeuTheme.colors.textPrimary,
+    fontWeight: '900',
   },
-  // Extruded Neumorphic Card Body
   neoCard: {
-    backgroundColor: '#161B26',
-    borderRadius: 24,
-    padding: 22,
-    borderTopWidth: 1.5,
-    borderLeftWidth: 1.5,
-    borderTopColor: 'rgba(255, 255, 255, 0.1)',
-    borderLeftColor: 'rgba(255, 255, 255, 0.07)',
-    borderBottomWidth: 2.5,
-    borderRightWidth: 2.5,
-    borderBottomColor: '#090C12',
-    borderRightColor: '#090C12',
-    shadowColor: '#000000',
-    shadowOffset: { width: 8, height: 8 },
-    shadowOpacity: 0.65,
-    shadowRadius: 20,
-    elevation: 8,
+    marginBottom: 10,
   },
-  // UNCONFIRMED EMAIL BOX STYLES
   unconfirmedEmailBox: {
-    backgroundColor: 'rgba(245, 158, 11, 0.12)',
-    borderTopWidth: 1,
-    borderLeftWidth: 1,
-    borderTopColor: 'rgba(251, 191, 36, 0.3)',
-    borderLeftColor: 'rgba(251, 191, 36, 0.2)',
-    borderBottomWidth: 1.5,
-    borderRightWidth: 1.5,
-    borderBottomColor: '#78350F',
-    borderRightColor: '#78350F',
-    borderRadius: 16,
-    padding: 14,
-    marginBottom: 16,
+    backgroundColor: NeuTheme.colors.amberBg,
+    borderRadius: 14,
+    padding: 12,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: '#FCD34D',
   },
   unconfirmedHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginBottom: 6,
+    gap: 6,
+    marginBottom: 4,
   },
   unconfirmedTitle: {
-    color: '#FBBF24',
-    fontSize: 13,
+    color: '#92400E',
+    fontSize: 12.5,
     fontWeight: '800',
   },
   unconfirmedText: {
-    color: '#FDE68A',
-    fontSize: 12,
-    lineHeight: 17,
-    fontWeight: '500',
-    marginBottom: 10,
+    color: '#78350F',
+    fontSize: 11.5,
+    lineHeight: 16,
+    marginBottom: 8,
   },
   resendBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#1E1B13',
-    paddingVertical: 9,
-    paddingHorizontal: 14,
-    borderRadius: 10,
+    backgroundColor: '#FEF3C7',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 9,
     borderWidth: 1,
-    borderColor: 'rgba(251, 191, 36, 0.35)',
-    gap: 8,
-    marginBottom: 8,
+    borderColor: '#F59E0B',
+    gap: 6,
   },
   resendBtnText: {
-    color: '#FDE68A',
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  devHintText: {
-    color: '#94A3B8',
-    fontSize: 11,
-    lineHeight: 15,
-    fontStyle: 'italic',
+    color: '#92400E',
+    fontSize: 11.5,
+    fontWeight: '800',
   },
   resendStatusBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    backgroundColor: NeuTheme.colors.emeraldBg,
     borderRadius: 10,
-    padding: 10,
-    marginBottom: 14,
-    gap: 8,
+    padding: 9,
+    marginBottom: 12,
+    gap: 6,
   },
   resendStatusText: {
-    color: '#34D399',
-    fontSize: 12,
-    fontWeight: '600',
+    color: '#065F46',
+    fontSize: 11.5,
+    fontWeight: '700',
     flex: 1,
   },
-  // NOTIFICATION & ERROR BANNERS
   successBox: {
-    backgroundColor: 'rgba(16, 185, 129, 0.12)',
-    borderTopWidth: 1,
-    borderLeftWidth: 1,
-    borderTopColor: 'rgba(52, 211, 153, 0.3)',
-    borderLeftColor: 'rgba(52, 211, 153, 0.2)',
-    borderBottomWidth: 1.5,
-    borderRightWidth: 1.5,
-    borderBottomColor: '#064E3B',
-    borderRightColor: '#064E3B',
-    borderRadius: 14,
-    padding: 14,
-    marginBottom: 18,
+    backgroundColor: NeuTheme.colors.emeraldBg,
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 14,
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 10,
+    gap: 8,
   },
   successTextGroup: {
     flex: 1,
   },
   successTitle: {
-    color: '#34D399',
-    fontSize: 13,
+    color: '#065F46',
+    fontSize: 12.5,
     fontWeight: '800',
-    marginBottom: 3,
+    marginBottom: 2,
   },
   successText: {
-    color: '#E2E8F0',
-    fontSize: 12,
-    lineHeight: 17,
-    fontWeight: '500',
+    color: '#047857',
+    fontSize: 11.5,
+    lineHeight: 16,
+    fontWeight: '600',
   },
   apiErrorBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(239, 68, 68, 0.12)',
-    borderTopWidth: 1,
-    borderLeftWidth: 1,
-    borderTopColor: 'rgba(248, 113, 113, 0.3)',
-    borderLeftColor: 'rgba(248, 113, 113, 0.2)',
-    borderBottomWidth: 1.5,
-    borderRightWidth: 1.5,
-    borderBottomColor: '#7F1D1D',
-    borderRightColor: '#7F1D1D',
-    borderRadius: 14,
-    padding: 12,
-    marginBottom: 16,
-    gap: 8,
+    backgroundColor: NeuTheme.colors.coralBg,
+    borderRadius: 12,
+    padding: 10,
+    marginBottom: 14,
+    gap: 6,
   },
   apiErrorText: {
-    color: '#FCA5A5',
-    fontSize: 12,
-    fontWeight: '600',
+    color: '#B91C1C',
+    fontSize: 11.5,
+    fontWeight: '700',
     flex: 1,
   },
   fieldGroup: {
-    marginBottom: 16,
+    marginBottom: 14,
   },
   label: {
-    color: '#64748B',
-    fontSize: 11,
+    color: NeuTheme.colors.textSecondary,
+    fontSize: 10.5,
     fontWeight: '800',
-    letterSpacing: 0.8,
-    marginBottom: 7,
+    letterSpacing: 0.7,
+    marginBottom: 6,
   },
-  // Inset / Recessed Well for Inputs
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#11151F',
+    backgroundColor: NeuTheme.colors.recessedWell,
     borderTopWidth: 1.5,
     borderLeftWidth: 1.5,
-    borderTopColor: '#090C12',
-    borderLeftColor: '#090C12',
-    borderBottomWidth: 1,
-    borderRightWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
-    borderRightColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: Platform.OS === 'web' ? 11 : 13,
-  },
-  inputContainerFocused: {
-    borderTopColor: '#10B981',
-    borderLeftColor: '#10B981',
-    borderBottomColor: '#065F46',
-    borderRightColor: '#065F46',
-    borderTopWidth: 1.5,
-    borderLeftWidth: 1.5,
+    borderTopColor: 'rgba(163, 177, 198, 0.65)',
+    borderLeftColor: 'rgba(163, 177, 198, 0.65)',
     borderBottomWidth: 1.5,
     borderRightWidth: 1.5,
-    backgroundColor: '#0F1522',
+    borderBottomColor: 'rgba(255, 255, 255, 0.95)',
+    borderRightColor: 'rgba(255, 255, 255, 0.95)',
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: Platform.OS === 'web' ? 10 : 12,
+  },
+  inputContainerFocused: {
+    borderTopColor: NeuTheme.colors.emerald,
+    borderLeftColor: NeuTheme.colors.emerald,
+    borderBottomColor: NeuTheme.colors.emerald,
+    borderRightColor: NeuTheme.colors.emerald,
+    backgroundColor: '#F0FDF4',
   },
   inputContainerError: {
     borderTopColor: '#EF4444',
     borderLeftColor: '#EF4444',
-    borderBottomColor: '#7F1D1D',
-    borderRightColor: '#7F1D1D',
-    borderTopWidth: 1.5,
-    borderLeftWidth: 1.5,
-    borderBottomWidth: 1.5,
-    borderRightWidth: 1.5,
-    backgroundColor: '#181116',
+    borderBottomColor: '#EF4444',
+    borderRightColor: '#EF4444',
+    backgroundColor: '#FEF2F2',
   },
   textInput: {
     flex: 1,
-    color: '#F8FAFC',
-    fontSize: 15,
+    color: NeuTheme.colors.textPrimary,
+    fontSize: 14.5,
     fontWeight: '600',
-    marginLeft: 10,
+    marginLeft: 8,
     backgroundColor: 'transparent',
     ...(Platform.OS === 'web'
       ? ({
@@ -916,37 +814,28 @@ const styles = StyleSheet.create({
   fieldErrorRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 6,
-    paddingLeft: 4,
-    gap: 5,
+    marginTop: 5,
+    paddingLeft: 3,
+    gap: 4,
   },
   fieldErrorText: {
-    color: '#F87171',
+    color: '#EF4444',
     fontSize: 11,
     fontWeight: '600',
   },
-  // Extruded Neumorphic Action Button with Emerald Radiance
   neoButton: {
     width: '100%',
-    backgroundColor: '#10B981',
-    borderRadius: 16,
-    paddingVertical: 16,
+    backgroundColor: NeuTheme.colors.emerald,
+    borderRadius: 15,
+    paddingVertical: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 8,
-    borderTopWidth: 2,
-    borderLeftWidth: 2,
-    borderTopColor: '#6EE7B7',
-    borderLeftColor: '#34D399',
-    borderBottomWidth: 3,
-    borderRightWidth: 3,
-    borderBottomColor: '#047857',
-    borderRightColor: '#047857',
-    shadowColor: '#000000',
-    shadowOffset: { width: 6, height: 6 },
-    shadowOpacity: 0.55,
-    shadowRadius: 14,
-    elevation: 8,
+    marginTop: 6,
+    shadowColor: NeuTheme.colors.emerald,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 5,
   },
   buttonDisabled: {
     opacity: 0.6,
@@ -959,19 +848,19 @@ const styles = StyleSheet.create({
   },
   neoButtonText: {
     color: '#052E16',
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '900',
-    letterSpacing: 0.4,
+    letterSpacing: 0.3,
   },
   securityRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 22,
-    gap: 6,
+    marginTop: 18,
+    gap: 5,
   },
   securityText: {
-    color: '#64748B',
+    color: NeuTheme.colors.textMuted,
     fontSize: 11,
     fontWeight: '600',
   },

@@ -5,6 +5,7 @@ import { ActivityIndicator, StyleSheet, View, Text, Platform, LogBox } from 'rea
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useAuthStore } from '../src/stores/authStore';
 import { supabase } from '../src/lib/supabase';
+import { NeuTheme } from '../src/theme/neumorphic';
 
 // Ignore React Native internal Bridgeless engine diagnostic warnings
 if (typeof console !== 'undefined') {
@@ -43,14 +44,14 @@ if (Platform.OS === 'web' && typeof document !== 'undefined') {
       input:-webkit-autofill:hover,
       input:-webkit-autofill:focus,
       input:-webkit-autofill:active {
-        -webkit-box-shadow: 0 0 0 1000px #11151F inset !important;
-        -webkit-text-fill-color: #F8FAFC !important;
+        -webkit-box-shadow: 0 0 0 1000px #E2E8F0 inset !important;
+        -webkit-text-fill-color: #1E293B !important;
         caret-color: #10B981 !important;
         transition: background-color 50000s ease-in-out 0s !important;
       }
       input {
         background-color: transparent !important;
-        color: #F8FAFC !important;
+        color: #1E293B !important;
         outline: none !important;
         border: none !important;
       }
@@ -138,8 +139,8 @@ export default function RootLayout() {
   if (!isInitialized || isLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <StatusBar style="light" />
-        <ActivityIndicator size="large" color="#10B981" />
+        <StatusBar style="dark" />
+        <ActivityIndicator size="large" color={NeuTheme.colors.emerald} />
         <Text style={styles.loadingText}>Initializing Fitness Core...</Text>
       </View>
     );
@@ -147,11 +148,11 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
       <Stack
         screenOptions={{
           headerShown: false,
-          contentStyle: { backgroundColor: '#161B26' },
+          contentStyle: { backgroundColor: NeuTheme.colors.background },
           animation: 'fade',
         }}
       >
@@ -168,15 +169,15 @@ export default function RootLayout() {
 const styles = StyleSheet.create({
   loadingContainer: {
     flex: 1,
-    backgroundColor: '#161B26',
+    backgroundColor: NeuTheme.colors.background,
     justifyContent: 'center',
     alignItems: 'center',
     gap: 16,
   },
   loadingText: {
-    color: '#94A3B8',
+    color: NeuTheme.colors.textSecondary,
     fontSize: 15,
-    fontWeight: '500',
+    fontWeight: '600',
     letterSpacing: 0.3,
   },
 });

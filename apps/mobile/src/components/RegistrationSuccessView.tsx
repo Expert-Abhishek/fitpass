@@ -21,6 +21,8 @@ import {
   Edit3,
 } from 'lucide-react-native';
 import { useAuthStore } from '../stores/authStore';
+import { NeuTheme } from '../theme/neumorphic';
+import NeuCard from './neumorphic/NeuCard';
 
 interface RegistrationSuccessViewProps {
   email: string;
@@ -44,51 +46,49 @@ export default function RegistrationSuccessView({
 
   const { resendConfirmationEmail } = useAuthStore();
 
-  // Pulse animation for the glowing checkmark / mail badge
+  // Pulse animation for the hero badge
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const badgeGlowAnim = useRef(new Animated.Value(0.4)).current;
-  const slideUpAnim = useRef(new Animated.Value(20)).current;
+  const slideUpAnim = useRef(new Animated.Value(15)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // Fade & Slide in
     Animated.parallel([
       Animated.timing(opacityAnim, {
         toValue: 1,
-        duration: 450,
+        duration: 400,
         useNativeDriver: true,
       }),
       Animated.timing(slideUpAnim, {
         toValue: 0,
-        duration: 450,
+        duration: 400,
         useNativeDriver: true,
       }),
     ]).start();
 
-    // Subtle continuous ambient pulse
     const pulseLoop = Animated.loop(
       Animated.sequence([
         Animated.parallel([
           Animated.timing(pulseAnim, {
-            toValue: 1.08,
-            duration: 1800,
+            toValue: 1.06,
+            duration: 1600,
             useNativeDriver: true,
           }),
           Animated.timing(badgeGlowAnim, {
-            toValue: 0.85,
-            duration: 1800,
+            toValue: 0.8,
+            duration: 1600,
             useNativeDriver: true,
           }),
         ]),
         Animated.parallel([
           Animated.timing(pulseAnim, {
             toValue: 1,
-            duration: 1800,
+            duration: 1600,
             useNativeDriver: true,
           }),
           Animated.timing(badgeGlowAnim, {
             toValue: 0.4,
-            duration: 1800,
+            duration: 1600,
             useNativeDriver: true,
           }),
         ]),
@@ -96,11 +96,9 @@ export default function RegistrationSuccessView({
     );
 
     pulseLoop.start();
-
     return () => pulseLoop.stop();
   }, []);
 
-  // Cooldown timer effect
   useEffect(() => {
     if (cooldown > 0) {
       const timer = setTimeout(() => setCooldown((c) => c - 1), 1000);
@@ -150,14 +148,14 @@ export default function RegistrationSuccessView({
       if (error) {
         setResendStatus({
           type: 'error',
-          message: error.message || 'Failed to resend confirmation email. Please try again.',
+          message: error.message || 'Failed to resend verification email.',
         });
       } else {
         setResendStatus({
           type: 'success',
-          message: 'Verification email sent! Check your inbox & spam folder.',
+          message: 'Verification email resent! Check your inbox & spam folder.',
         });
-        setCooldown(60); // 60s cooldown
+        setCooldown(60);
       }
     } catch (err: any) {
       setResendStatus({
@@ -181,7 +179,7 @@ export default function RegistrationSuccessView({
         },
       ]}
     >
-      {/* Glow / Pulse Hero Graphic */}
+      {/* Hero Badge */}
       <View style={styles.heroWrapper}>
         <Animated.View
           style={[
@@ -193,9 +191,9 @@ export default function RegistrationSuccessView({
           ]}
         />
         <View style={styles.neoHeroBadge}>
-          <Mail size={36} color="#10B981" strokeWidth={2.2} />
+          <Mail size={32} color={NeuTheme.colors.emerald} strokeWidth={2.2} />
           <View style={styles.badgeMiniCheck}>
-            <CheckCircle2 size={18} color="#052E16" fill="#10B981" />
+            <CheckCircle2 size={16} color="#052E16" fill={NeuTheme.colors.emerald} />
           </View>
         </View>
       </View>
@@ -206,24 +204,24 @@ export default function RegistrationSuccessView({
         <Text style={styles.statusPillText}>CONFIRMATION LINK SENT</Text>
       </View>
 
-      {/* Main Title & Congratulations */}
+      {/* Title & Subtitle */}
       <Text style={styles.title}>Successfully Registered! 🎉</Text>
       <Text style={styles.subtitle}>
         Welcome aboard, <Text style={styles.highlightName}>{athleteName}</Text>! We’ve sent a confirmation email to verify your address. Once confirmed, you can log in below.
       </Text>
 
       {/* Email Address Recessed Card */}
-      <View style={styles.emailCard}>
+      <NeuCard variant="inset" padding={12} borderRadius={16} style={styles.emailCard}>
         <View style={styles.emailCardHeader}>
           <Text style={styles.emailCardLabel}>CONFIRMATION SENT TO</Text>
           <View style={styles.secureTag}>
-            <ShieldCheck size={12} color="#34D399" />
+            <ShieldCheck size={12} color="#047857" />
             <Text style={styles.secureTagText}>Encrypted</Text>
           </View>
         </View>
 
         <View style={styles.emailDisplayRow}>
-          <Mail size={17} color="#10B981" />
+          <Mail size={16} color={NeuTheme.colors.emerald} />
           <Text style={styles.emailDisplayText} numberOfLines={1} ellipsizeMode="middle">
             {email}
           </Text>
@@ -233,16 +231,16 @@ export default function RegistrationSuccessView({
         <TouchableOpacity
           onPress={handleOpenEmailApp}
           style={styles.openMailBtn}
-          activeOpacity={0.8}
+          activeOpacity={0.82}
         >
-          <Inbox size={14} color="#34D399" />
+          <Inbox size={13} color="#047857" />
           <Text style={styles.openMailBtnText}>Open Email App</Text>
-          <ExternalLink size={13} color="#34D399" />
+          <ExternalLink size={12} color="#047857" />
         </TouchableOpacity>
-      </View>
+      </NeuCard>
 
       {/* 3-Step Instruction Guide */}
-      <View style={styles.instructionsContainer}>
+      <NeuCard variant="inset" padding={12} borderRadius={16} style={styles.instructionsContainer}>
         <Text style={styles.instructionsTitle}>HOW TO GET STARTED</Text>
 
         <View style={styles.stepItem}>
@@ -252,7 +250,7 @@ export default function RegistrationSuccessView({
           <View style={styles.stepContent}>
             <Text style={styles.stepHeading}>Check your email inbox</Text>
             <Text style={styles.stepDescription}>
-              Look for the confirmation mail from FitPass / Supabase.
+              Look for the confirmation mail from FitPass.
             </Text>
           </View>
         </View>
@@ -274,13 +272,13 @@ export default function RegistrationSuccessView({
             <Text style={styles.stepNumberText}>3</Text>
           </View>
           <View style={styles.stepContent}>
-            <Text style={styles.stepHeading}>Log in & begin your journey</Text>
+            <Text style={styles.stepHeading}>Log in & begin your blueprint</Text>
             <Text style={styles.stepDescription}>
-              Return here, click <Text style={styles.stepHighlight}>Go to Login</Text>, and enter your password.
+              Return here, click <Text style={styles.stepHighlight}>Go to Login</Text>, and enter password.
             </Text>
           </View>
         </View>
-      </View>
+      </NeuCard>
 
       {/* Resend Status Notifications */}
       {resendStatus && (
@@ -291,9 +289,9 @@ export default function RegistrationSuccessView({
           ]}
         >
           {resendStatus.type === 'success' ? (
-            <CheckCircle2 size={16} color="#34D399" style={{ marginTop: 2 }} />
+            <CheckCircle2 size={15} color="#047857" style={{ marginTop: 2 }} />
           ) : (
-            <ShieldCheck size={16} color="#F87171" style={{ marginTop: 2 }} />
+            <ShieldCheck size={15} color="#DC2626" style={{ marginTop: 2 }} />
           )}
           <Text
             style={[
@@ -315,9 +313,9 @@ export default function RegistrationSuccessView({
         activeOpacity={0.88}
       >
         <View style={styles.loginButtonContent}>
-          <LogIn size={20} color="#052E16" strokeWidth={2.6} />
+          <LogIn size={18} color="#052E16" strokeWidth={2.6} />
           <Text style={styles.loginPrimaryButtonText}>Go to Login Page</Text>
-          <ArrowRight size={20} color="#052E16" strokeWidth={2.8} />
+          <ArrowRight size={18} color="#052E16" strokeWidth={2.8} />
         </View>
       </TouchableOpacity>
 
@@ -333,11 +331,11 @@ export default function RegistrationSuccessView({
           activeOpacity={0.75}
         >
           {isResending ? (
-            <ActivityIndicator size="small" color="#34D399" />
+            <ActivityIndicator size="small" color={NeuTheme.colors.emerald} />
           ) : (
             <RefreshCw
-              size={13}
-              color={cooldown > 0 ? '#64748B' : '#34D399'}
+              size={12}
+              color={cooldown > 0 ? NeuTheme.colors.textMuted : NeuTheme.colors.emerald}
               style={{ marginRight: 4 }}
             />
           )}
@@ -347,7 +345,7 @@ export default function RegistrationSuccessView({
               cooldown > 0 && styles.resendActionTextDisabled,
             ]}
           >
-            {cooldown > 0 ? `Resend email in ${cooldown}s` : 'Resend confirmation email'}
+            {cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend confirmation email'}
           </Text>
         </TouchableOpacity>
 
@@ -357,7 +355,7 @@ export default function RegistrationSuccessView({
             style={styles.changeEmailBtn}
             activeOpacity={0.75}
           >
-            <Edit3 size={13} color="#94A3B8" style={{ marginRight: 4 }} />
+            <Edit3 size={12} color={NeuTheme.colors.textSecondary} style={{ marginRight: 4 }} />
             <Text style={styles.changeEmailText}>Change email</Text>
           </TouchableOpacity>
         )}
@@ -366,7 +364,7 @@ export default function RegistrationSuccessView({
       {/* Helpful Spam Note */}
       <View style={styles.spamNotice}>
         <Text style={styles.spamNoticeText}>
-          💡 <Text style={{ fontWeight: '700', color: '#94A3B8' }}>Pro-Tip:</Text> If you don’t find the email in your primary inbox, please check your <Text style={{ color: '#FDE68A', fontWeight: '600' }}>Spam</Text> or <Text style={{ color: '#FDE68A', fontWeight: '600' }}>Promotions</Text> folder.
+          💡 <Text style={{ fontWeight: '700', color: NeuTheme.colors.textPrimary }}>Pro-Tip:</Text> Check your <Text style={{ color: '#D97706', fontWeight: '700' }}>Spam</Text> or <Text style={{ color: '#D97706', fontWeight: '700' }}>Promotions</Text> tab if you don’t find the email in 1-2 min.
         </Text>
       </View>
     </Animated.View>
@@ -382,350 +380,290 @@ const styles = StyleSheet.create({
     position: 'relative',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
+    marginBottom: 14,
   },
   glowAura: {
     position: 'absolute',
-    width: 96,
-    height: 96,
-    borderRadius: 48,
+    width: 86,
+    height: 86,
+    borderRadius: 43,
     backgroundColor: 'rgba(16, 185, 129, 0.18)',
   },
   neoHeroBadge: {
-    width: 82,
-    height: 82,
-    borderRadius: 41,
-    backgroundColor: '#161B26',
+    width: 74,
+    height: 74,
+    borderRadius: 37,
+    backgroundColor: NeuTheme.colors.cardBackground,
+    ...NeuTheme.shadows.raised,
     borderTopWidth: 2,
     borderLeftWidth: 2,
-    borderTopColor: 'rgba(52, 211, 153, 0.45)',
-    borderLeftColor: 'rgba(52, 211, 153, 0.25)',
-    borderBottomWidth: 3,
-    borderRightWidth: 3,
-    borderBottomColor: '#064E3B',
-    borderRightColor: '#064E3B',
+    borderTopColor: 'rgba(255, 255, 255, 0.95)',
+    borderLeftColor: 'rgba(255, 255, 255, 0.95)',
+    borderBottomWidth: 2,
+    borderRightWidth: 2,
+    borderBottomColor: 'rgba(163, 177, 198, 0.5)',
+    borderRightColor: 'rgba(163, 177, 198, 0.5)',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#10B981',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.4,
-    shadowRadius: 16,
-    elevation: 8,
   },
   badgeMiniCheck: {
     position: 'absolute',
     bottom: -2,
     right: -2,
-    backgroundColor: '#161B26',
-    borderRadius: 12,
+    backgroundColor: NeuTheme.colors.cardBackground,
+    borderRadius: 10,
     borderWidth: 1.5,
-    borderColor: '#10B981',
-    padding: 2,
+    borderColor: NeuTheme.colors.emerald,
+    padding: 1.5,
   },
   statusPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(16, 185, 129, 0.12)',
-    borderTopWidth: 1,
-    borderLeftWidth: 1,
-    borderTopColor: 'rgba(52, 211, 153, 0.25)',
-    borderLeftColor: 'rgba(52, 211, 153, 0.15)',
-    borderBottomWidth: 1.5,
-    borderRightWidth: 1.5,
-    borderBottomColor: '#064E3B',
-    borderRightColor: '#064E3B',
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 20,
-    marginBottom: 12,
-    gap: 6,
+    backgroundColor: NeuTheme.colors.emeraldBg,
+    paddingHorizontal: 11,
+    paddingVertical: 4.5,
+    borderRadius: 16,
+    marginBottom: 10,
+    gap: 5,
   },
   pulseDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 3.5,
-    backgroundColor: '#34D399',
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#059669',
   },
   statusPillText: {
-    color: '#34D399',
-    fontSize: 10.5,
+    color: '#065F46',
+    fontSize: 9.5,
     fontWeight: '800',
-    letterSpacing: 0.8,
+    letterSpacing: 0.7,
   },
   title: {
-    fontSize: 23,
+    fontSize: 21,
     fontWeight: '900',
-    color: '#F8FAFC',
+    color: NeuTheme.colors.textPrimary,
     textAlign: 'center',
     letterSpacing: -0.4,
-    marginBottom: 6,
+    marginBottom: 5,
   },
   subtitle: {
-    fontSize: 13.5,
-    color: '#94A3B8',
+    fontSize: 12.5,
+    color: NeuTheme.colors.textSecondary,
     textAlign: 'center',
-    lineHeight: 20,
-    marginBottom: 18,
+    lineHeight: 18,
+    marginBottom: 14,
     paddingHorizontal: 4,
   },
   highlightName: {
-    color: '#34D399',
-    fontWeight: '700',
+    color: '#047857',
+    fontWeight: '800',
   },
-  // Email Display Card
   emailCard: {
     width: '100%',
-    backgroundColor: '#11151F',
-    borderRadius: 16,
-    padding: 14,
-    borderTopWidth: 1.5,
-    borderLeftWidth: 1.5,
-    borderTopColor: '#090C12',
-    borderLeftColor: '#090C12',
-    borderBottomWidth: 1,
-    borderRightWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
-    borderRightColor: 'rgba(255, 255, 255, 0.05)',
-    marginBottom: 14,
+    marginBottom: 12,
   },
   emailCardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   emailCardLabel: {
-    color: '#64748B',
-    fontSize: 10.5,
+    color: NeuTheme.colors.textSecondary,
+    fontSize: 9.5,
     fontWeight: '800',
-    letterSpacing: 0.8,
+    letterSpacing: 0.7,
   },
   secureTag: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 3,
   },
   secureTagText: {
-    color: '#34D399',
-    fontSize: 10.5,
-    fontWeight: '600',
+    color: '#047857',
+    fontSize: 10,
+    fontWeight: '700',
   },
   emailDisplayRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    backgroundColor: '#161B26',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.06)',
+    gap: 8,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    marginBottom: 8,
   },
   emailDisplayText: {
     flex: 1,
-    color: '#F1F5F9',
-    fontSize: 14,
+    color: NeuTheme.colors.textPrimary,
+    fontSize: 13,
     fontWeight: '700',
-    letterSpacing: 0.2,
   },
   openMailBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(16, 185, 129, 0.1)',
-    borderRadius: 10,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    gap: 6,
-    borderWidth: 1,
-    borderColor: 'rgba(52, 211, 153, 0.25)',
+    backgroundColor: NeuTheme.colors.emeraldBg,
+    borderRadius: 9,
+    paddingVertical: 7,
+    paddingHorizontal: 10,
+    gap: 5,
   },
   openMailBtnText: {
-    color: '#34D399',
-    fontSize: 12,
-    fontWeight: '700',
+    color: '#047857',
+    fontSize: 11.5,
+    fontWeight: '800',
   },
-  // Step-by-Step Instructions Box
   instructionsContainer: {
     width: '100%',
-    backgroundColor: '#11151F',
-    borderRadius: 16,
-    padding: 14,
-    borderTopWidth: 1.5,
-    borderLeftWidth: 1.5,
-    borderTopColor: '#090C12',
-    borderLeftColor: '#090C12',
-    borderBottomWidth: 1,
-    borderRightWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.06)',
-    borderRightColor: 'rgba(255, 255, 255, 0.04)',
-    marginBottom: 16,
+    marginBottom: 14,
   },
   instructionsTitle: {
-    color: '#64748B',
-    fontSize: 10.5,
+    color: NeuTheme.colors.textSecondary,
+    fontSize: 9.5,
     fontWeight: '800',
-    letterSpacing: 0.8,
-    marginBottom: 12,
+    letterSpacing: 0.7,
+    marginBottom: 10,
   },
   stepItem: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 12,
-    paddingBottom: 10,
-    marginBottom: 10,
+    gap: 10,
+    paddingBottom: 8,
+    marginBottom: 8,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+    borderBottomColor: 'rgba(163, 177, 198, 0.25)',
   },
   stepNumberBadge: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: '#1B2230',
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: NeuTheme.colors.cardBackground,
+    ...NeuTheme.shadows.raisedSmall,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(52, 211, 153, 0.3)',
   },
   stepNumberText: {
-    color: '#34D399',
-    fontSize: 11,
+    color: '#059669',
+    fontSize: 10.5,
     fontWeight: '800',
   },
   stepContent: {
     flex: 1,
   },
   stepHeading: {
-    color: '#F1F5F9',
-    fontSize: 12.5,
-    fontWeight: '700',
-    marginBottom: 2,
+    color: NeuTheme.colors.textPrimary,
+    fontSize: 12,
+    fontWeight: '800',
+    marginBottom: 1,
   },
   stepDescription: {
-    color: '#94A3B8',
-    fontSize: 11.5,
-    lineHeight: 16,
+    color: NeuTheme.colors.textSecondary,
+    fontSize: 11,
+    lineHeight: 15,
   },
   stepHighlight: {
-    color: '#34D399',
-    fontWeight: '700',
+    color: '#047857',
+    fontWeight: '800',
   },
-  // Feedback Banner
   feedbackBanner: {
     width: '100%',
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 8,
-    borderRadius: 12,
-    padding: 10,
-    marginBottom: 14,
-    borderWidth: 1,
+    gap: 6,
+    borderRadius: 10,
+    padding: 9,
+    marginBottom: 12,
   },
   feedbackSuccess: {
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
-    borderColor: 'rgba(52, 211, 153, 0.35)',
+    backgroundColor: NeuTheme.colors.emeraldBg,
   },
   feedbackError: {
-    backgroundColor: 'rgba(239, 68, 68, 0.15)',
-    borderColor: 'rgba(248, 113, 113, 0.35)',
+    backgroundColor: NeuTheme.colors.coralBg,
   },
   feedbackText: {
     flex: 1,
-    fontSize: 12,
-    lineHeight: 17,
-    fontWeight: '500',
+    fontSize: 11.5,
+    lineHeight: 16,
+    fontWeight: '600',
   },
   feedbackTextSuccess: {
-    color: '#34D399',
+    color: '#065F46',
   },
   feedbackTextError: {
-    color: '#FCA5A5',
+    color: '#B91C1C',
   },
-  // Primary Login Button
   loginPrimaryButton: {
     width: '100%',
-    backgroundColor: '#10B981',
-    borderRadius: 16,
-    paddingVertical: 15,
+    backgroundColor: NeuTheme.colors.emerald,
+    borderRadius: 14,
+    paddingVertical: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 4,
-    borderTopWidth: 2,
-    borderLeftWidth: 2,
-    borderTopColor: '#6EE7B7',
-    borderLeftColor: '#34D399',
-    borderBottomWidth: 3,
-    borderRightWidth: 3,
-    borderBottomColor: '#047857',
-    borderRightColor: '#047857',
-    shadowColor: '#10B981',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.45,
-    shadowRadius: 14,
-    elevation: 8,
+    shadowColor: NeuTheme.colors.emerald,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 5,
   },
   loginButtonContent: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 10,
+    gap: 8,
   },
   loginPrimaryButtonText: {
     color: '#052E16',
-    fontSize: 15.5,
+    fontSize: 14.5,
     fontWeight: '900',
-    letterSpacing: 0.3,
+    letterSpacing: 0.2,
   },
-  // Utility Row (Resend & Change Email)
   utilityActionsRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     width: '100%',
-    marginTop: 14,
+    marginTop: 12,
     paddingHorizontal: 4,
   },
   resendActionBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 6,
+    paddingVertical: 4,
   },
   resendBtnDisabled: {
-    opacity: 0.6,
+    opacity: 0.55,
   },
   resendActionText: {
-    color: '#34D399',
-    fontSize: 12,
+    color: '#047857',
+    fontSize: 11.5,
     fontWeight: '700',
   },
   resendActionTextDisabled: {
-    color: '#64748B',
+    color: NeuTheme.colors.textMuted,
   },
   changeEmailBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 6,
+    paddingVertical: 4,
   },
   changeEmailText: {
-    color: '#94A3B8',
-    fontSize: 12,
+    color: NeuTheme.colors.textSecondary,
+    fontSize: 11.5,
     fontWeight: '600',
   },
-  // Spam Notice
   spamNotice: {
     width: '100%',
-    backgroundColor: 'rgba(15, 23, 42, 0.6)',
-    borderRadius: 12,
-    padding: 10,
-    marginTop: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(148, 163, 184, 0.12)',
+    backgroundColor: NeuTheme.colors.recessedWell,
+    borderRadius: 10,
+    padding: 8,
+    marginTop: 12,
   },
   spamNoticeText: {
-    color: '#64748B',
-    fontSize: 11,
-    lineHeight: 16,
+    color: NeuTheme.colors.textSecondary,
+    fontSize: 10.5,
+    lineHeight: 15,
     textAlign: 'center',
   },
 });

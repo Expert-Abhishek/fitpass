@@ -1,8 +1,10 @@
 import React, { useMemo } from 'react';
 import { StyleSheet, View, Text } from 'react-native';
-import Svg, { Path, Circle, Line, Defs, LinearGradient, Stop, G } from 'react-native-svg';
+import Svg, { Path, Circle, Line, Defs, LinearGradient, Stop } from 'react-native-svg';
 import { BMICategory } from '@fitness/types';
 import { Gauge } from 'lucide-react-native';
+import { NeuTheme } from '../theme/neumorphic';
+import NeuCard from './neumorphic/NeuCard';
 
 interface SpeedometerGaugeProps {
   bmi: number;
@@ -10,10 +12,8 @@ interface SpeedometerGaugeProps {
 }
 
 export function SpeedometerGauge({ bmi, category }: SpeedometerGaugeProps) {
-  // Clamp BMI between 15 and 40 for gauge meter range
   const safeBmi = Math.max(15, Math.min(40, bmi || 22));
 
-  // Map BMI (15 to 40) to angle in degrees (-90deg to +90deg / semi-circle)
   const angleDegrees = useMemo(() => {
     const fraction = (safeBmi - 15) / (40 - 15);
     return -90 + fraction * 180;
@@ -25,53 +25,51 @@ export function SpeedometerGauge({ bmi, category }: SpeedometerGaugeProps) {
         return {
           title: 'UNDERWEIGHT',
           desc: 'Nutrient Surplus & Lean Mass Focus',
-          color: '#38BDF8',
-          bg: 'rgba(56, 189, 248, 0.14)',
-          border: '#0284C7',
+          color: '#0284C7',
+          bg: NeuTheme.colors.skyBlueBg,
+          border: '#38BDF8',
         };
       case 'Normal':
         return {
           title: 'HEALTHY / OPTIMAL',
           desc: 'Metabolic Equilibrium Zone',
-          color: '#34D399',
-          bg: 'rgba(16, 185, 129, 0.14)',
-          border: '#059669',
+          color: '#047857',
+          bg: NeuTheme.colors.emeraldBg,
+          border: '#10B981',
         };
       case 'Overweight':
         return {
           title: 'OVERWEIGHT',
           desc: 'Moderate Deficit & Muscle Preservation',
-          color: '#FBBF24',
-          bg: 'rgba(245, 158, 11, 0.14)',
-          border: '#D97706',
+          color: '#B45309',
+          bg: NeuTheme.colors.amberBg,
+          border: '#F59E0B',
         };
       case 'Obese':
         return {
           title: 'OBESE ZONE',
           desc: 'Structured Progressive Caloric Rebalance',
-          color: '#FB7185',
-          bg: 'rgba(244, 63, 94, 0.14)',
-          border: '#E11D48',
+          color: '#B91C1C',
+          bg: NeuTheme.colors.coralBg,
+          border: '#EF4444',
         };
       default:
         return {
           title: 'CALIBRATING',
           desc: 'Enter your height and weight',
-          color: '#94A3B8',
-          bg: 'rgba(113, 113, 122, 0.14)',
-          border: '#475569',
+          color: NeuTheme.colors.textSecondary,
+          bg: NeuTheme.colors.recessedWell,
+          border: '#CBD5E1',
         };
     }
   };
 
   const config = getCategoryConfig(category);
 
-  // SVG Geometry for Speedometer Arc (Radius 85, Center 110, 100)
   const cx = 110;
   const cy = 95;
   const r = 78;
 
-  // Arc path generator helper: angles from 180 to 0 (top semi-circle)
   const polarToCartesian = (centerX: number, centerY: number, radius: number, angleInDegrees: number) => {
     const angleInRadians = ((angleInDegrees - 180) * Math.PI) / 180.0;
     return {
@@ -87,28 +85,22 @@ export function SpeedometerGauge({ bmi, category }: SpeedometerGaugeProps) {
     return ['M', start.x, start.y, 'A', radius, radius, 0, largeArcFlag, 0, end.x, end.y].join(' ');
   };
 
-  // Speedometer 4 Zones (180deg total arc: 0 to 180 from left to right)
-  // 15 -> 18.5 is (3.5/25) * 180 = 25.2 deg
-  // 18.5 -> 25 is (6.5/25) * 180 = 46.8 deg -> total 72 deg
-  // 25 -> 30 is (5/25) * 180 = 36 deg -> total 108 deg
-  // 30 -> 40 is (10/25) * 180 = 72 deg -> total 180 deg
   const arcUnderweight = describeArc(cx, cy, r, 0, 25.2);
   const arcNormal = describeArc(cx, cy, r, 25.2, 72);
   const arcOverweight = describeArc(cx, cy, r, 72, 108);
   const arcObese = describeArc(cx, cy, r, 108, 180);
 
-  // Needle endpoint based on angleDegrees
   const needleLength = 58;
   const needleAngleRad = ((angleDegrees - 90) * Math.PI) / 180;
   const needleX = cx + needleLength * Math.cos(needleAngleRad);
   const needleY = cy + needleLength * Math.sin(needleAngleRad);
 
   return (
-    <View style={styles.container}>
+    <NeuCard variant="raised" padding={16} borderRadius={22} style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.titleRow}>
-          <Gauge size={16} color="#10B981" />
+          <Gauge size={16} color={NeuTheme.colors.emerald} />
           <Text style={styles.titleText}>LIVE METABOLIC SPEEDOMETER</Text>
         </View>
         <View style={[styles.categoryBadge, { backgroundColor: config.bg, borderColor: config.border }]}>
@@ -121,23 +113,15 @@ export function SpeedometerGauge({ bmi, category }: SpeedometerGaugeProps) {
       {/* Speedometer Gauge Dial */}
       <View style={styles.dialContainer}>
         <Svg width={220} height={118} viewBox="0 0 220 118">
-          <Defs>
-            <LinearGradient id="needleGlow" x1="0" y1="0" x2="1" y2="1">
-              <Stop offset="0%" stopColor="#10B981" />
-              <Stop offset="100%" stopColor="#34D399" />
-            </LinearGradient>
-          </Defs>
-
           {/* Background Outer Track */}
           <Path
             d={describeArc(cx, cy, r, 0, 180)}
             fill="none"
-            stroke="#11151F"
+            stroke="#CBD5E1"
             strokeWidth={14}
             strokeLinecap="round"
           />
 
-          {/* Colored Meter Arcs */}
           {/* 1. Underweight (Blue) */}
           <Path
             d={arcUnderweight}
@@ -180,20 +164,20 @@ export function SpeedometerGauge({ bmi, category }: SpeedometerGaugeProps) {
             y1={cy}
             x2={needleX}
             y2={needleY}
-            stroke="#F8FAFC"
+            stroke="#1E293B"
             strokeWidth={3.5}
             strokeLinecap="round"
           />
 
           {/* Center Bezel Cap */}
-          <Circle cx={cx} cy={cy} r={9} fill="#11151F" stroke="#10B981" strokeWidth={2.5} />
-          <Circle cx={cx} cy={cy} r={4} fill="#F8FAFC" />
+          <Circle cx={cx} cy={cy} r={8} fill="#1E293B" stroke="#10B981" strokeWidth={2} />
+          <Circle cx={cx} cy={cy} r={3.5} fill="#FFFFFF" />
         </Svg>
 
         {/* Digital Speedometer Value HUD */}
         <View style={styles.hudOverlay}>
           <Text style={styles.hudScore}>{bmi > 0 ? bmi.toFixed(1) : '--'}</Text>
-          <Text style={styles.hudUnit}>BMI</Text>
+          <Text style={styles.hudUnit}>BMI SCORE</Text>
         </View>
       </View>
 
@@ -205,7 +189,7 @@ export function SpeedometerGauge({ bmi, category }: SpeedometerGaugeProps) {
         </View>
         <View style={styles.legendItem}>
           <View style={[styles.legendDot, { backgroundColor: '#10B981' }]} />
-          <Text style={[styles.legendText, { color: '#34D399', fontWeight: '800' }]}>18.5 - 24.9</Text>
+          <Text style={[styles.legendText, { color: '#047857', fontWeight: '800' }]}>18.5 - 24.9</Text>
         </View>
         <View style={styles.legendItem}>
           <View style={[styles.legendDot, { backgroundColor: '#F59E0B' }]} />
@@ -217,122 +201,97 @@ export function SpeedometerGauge({ bmi, category }: SpeedometerGaugeProps) {
         </View>
       </View>
 
-      {/* Subtitle description */}
       <Text style={styles.coachSummaryText}>{config.desc}</Text>
-    </View>
+    </NeuCard>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#161B26',
-    borderRadius: 22,
-    padding: 18,
-    marginTop: 14,
+    marginTop: 12,
     marginBottom: 10,
-    borderTopWidth: 1.5,
-    borderLeftWidth: 1.5,
-    borderTopColor: 'rgba(255, 255, 255, 0.1)',
-    borderLeftColor: 'rgba(255, 255, 255, 0.07)',
-    borderBottomWidth: 2,
-    borderRightWidth: 2,
-    borderBottomColor: '#090C12',
-    borderRightColor: '#090C12',
-    shadowColor: '#000000',
-    shadowOffset: { width: 6, height: 6 },
-    shadowOpacity: 0.6,
-    shadowRadius: 14,
-    elevation: 6,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 6,
+    marginBottom: 4,
   },
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 5,
   },
   titleText: {
-    color: '#64748B',
-    fontSize: 11,
+    color: NeuTheme.colors.textSecondary,
+    fontSize: 10.5,
     fontWeight: '800',
-    letterSpacing: 0.8,
+    letterSpacing: 0.7,
   },
   categoryBadge: {
     borderWidth: 1,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 2.5,
+    borderRadius: 10,
   },
   categoryBadgeText: {
-    fontSize: 11,
+    fontSize: 10.5,
     fontWeight: '800',
-    letterSpacing: 0.4,
+    letterSpacing: 0.3,
   },
   dialContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 6,
+    marginTop: 4,
     marginBottom: 2,
     position: 'relative',
   },
   hudOverlay: {
     position: 'absolute',
-    bottom: 38,
+    bottom: 34,
     alignItems: 'center',
   },
   hudScore: {
-    color: '#F8FAFC',
-    fontSize: 28,
+    color: NeuTheme.colors.textPrimary,
+    fontSize: 26,
     fontWeight: '900',
     letterSpacing: -0.5,
   },
   hudUnit: {
-    color: '#64748B',
-    fontSize: 9,
+    color: NeuTheme.colors.textSecondary,
+    fontSize: 8.5,
     fontWeight: '800',
-    letterSpacing: 0.8,
+    letterSpacing: 0.7,
   },
   legendRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    backgroundColor: '#11151F',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    marginTop: 10,
-    borderTopWidth: 1,
-    borderLeftWidth: 1,
-    borderTopColor: '#090C12',
-    borderLeftColor: '#090C12',
-    borderBottomWidth: 1,
-    borderRightWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
-    borderRightColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: NeuTheme.colors.recessedWell,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    marginTop: 8,
   },
   legendItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
+    gap: 4,
   },
   legendDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 3.5,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
   },
   legendText: {
-    color: '#94A3B8',
-    fontSize: 10,
+    color: NeuTheme.colors.textSecondary,
+    fontSize: 9.5,
     fontWeight: '600',
   },
   coachSummaryText: {
-    color: '#CBD5E1',
-    fontSize: 12,
+    color: NeuTheme.colors.textPrimary,
+    fontSize: 11.5,
     textAlign: 'center',
-    marginTop: 10,
-    fontWeight: '500',
+    marginTop: 8,
+    fontWeight: '600',
   },
 });

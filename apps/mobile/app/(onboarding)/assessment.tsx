@@ -28,13 +28,15 @@ import {
   Scale,
   Info,
 } from 'lucide-react-native';
-import { Gender, TargetGoal, BMICategory, BodyAssessment } from '@fitness/types';
+import { Gender, TargetGoal, BodyAssessment } from '@fitness/types';
 import { calculateBMI, calculateBMR } from '@fitness/utils';
 import { useAuthStore } from '../../src/stores/authStore';
 import { supabase } from '../../src/lib/supabase';
 import { StepProgressBar } from '../../src/components/StepProgressBar';
 import { CoachTip } from '../../src/components/CoachTip';
 import { SpeedometerGauge } from '../../src/components/SpeedometerGauge';
+import { NeuTheme } from '../../src/theme/neumorphic';
+import NeuCard from '../../src/components/neumorphic/NeuCard';
 
 type HeightUnit = 'CM' | 'FT';
 type WeightUnit = 'KG' | 'LBS';
@@ -185,6 +187,7 @@ export default function AssessmentWizardScreen() {
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
           <View style={styles.mobileContainer}>
             {/* Top Step Progress Bar */}
@@ -198,7 +201,7 @@ export default function AssessmentWizardScreen() {
             {/* Error Message */}
             {errorMessage && (
               <View style={styles.errorBox}>
-                <Info size={16} color="#F87171" />
+                <Info size={16} color={NeuTheme.colors.coral} />
                 <Text style={styles.errorText}>{errorMessage}</Text>
               </View>
             )}
@@ -218,15 +221,15 @@ export default function AssessmentWizardScreen() {
                   We'll personalize your daily nutrition blueprint and milestones.
                 </Text>
 
-                {/* Name Recessed Input */}
+                {/* Name Recessed Input Well */}
                 <View style={styles.neoInputBox}>
-                  <User size={18} color="#10B981" />
+                  <User size={18} color={NeuTheme.colors.emerald} />
                   <TextInput
                     style={styles.nameInput}
                     placeholder="Your preferred name"
-                    placeholderTextColor="#475569"
+                    placeholderTextColor={NeuTheme.colors.textMuted}
                     autoCapitalize="words"
-                    selectionColor="#10B981"
+                    selectionColor={NeuTheme.colors.emerald}
                     value={name}
                     onChangeText={(val) => {
                       setName(val);
@@ -245,9 +248,9 @@ export default function AssessmentWizardScreen() {
                   >
                     <View style={styles.sexCardHeader}>
                       <View style={styles.sexIconCircle}>
-                        <Shield size={16} color="#10B981" />
+                        <Shield size={16} color={NeuTheme.colors.emerald} />
                       </View>
-                      {gender === 'MALE' && <Check size={16} color="#10B981" strokeWidth={3} />}
+                      {gender === 'MALE' && <Check size={16} color={NeuTheme.colors.emerald} strokeWidth={3} />}
                     </View>
                     <Text style={styles.sexTitle}>Male</Text>
                     <Text style={styles.sexFormula}>MSJ (+5 kcal)</Text>
@@ -260,9 +263,9 @@ export default function AssessmentWizardScreen() {
                   >
                     <View style={styles.sexCardHeader}>
                       <View style={styles.sexIconCircle}>
-                        <HeartPulse size={16} color="#10B981" />
+                        <HeartPulse size={16} color={NeuTheme.colors.emerald} />
                       </View>
-                      {gender === 'FEMALE' && <Check size={16} color="#10B981" strokeWidth={3} />}
+                      {gender === 'FEMALE' && <Check size={16} color={NeuTheme.colors.emerald} strokeWidth={3} />}
                     </View>
                     <Text style={styles.sexTitle}>Female</Text>
                     <Text style={styles.sexFormula}>MSJ (-161 kcal)</Text>
@@ -271,7 +274,7 @@ export default function AssessmentWizardScreen() {
 
                 {/* Age Stepper */}
                 <Text style={styles.fieldLabel}>YOUR AGE (YEARS)</Text>
-                <View style={styles.stepperCard}>
+                <NeuCard variant="raised" padding={16} borderRadius={20} style={styles.stepperCard}>
                   <View>
                     <Text style={styles.stepperBigValue}>{age}</Text>
                     <Text style={styles.stepperUnit}>years old</Text>
@@ -283,7 +286,7 @@ export default function AssessmentWizardScreen() {
                       style={styles.stepperBtn}
                       activeOpacity={0.8}
                     >
-                      <Minus size={18} color="#94A3B8" />
+                      <Minus size={18} color={NeuTheme.colors.textSecondary} />
                     </TouchableOpacity>
 
                     <TouchableOpacity
@@ -291,15 +294,15 @@ export default function AssessmentWizardScreen() {
                       style={[styles.stepperBtn, styles.stepperBtnAdd]}
                       activeOpacity={0.8}
                     >
-                      <Plus size={18} color="#10B981" />
+                      <Plus size={18} color={NeuTheme.colors.emerald} />
                     </TouchableOpacity>
                   </View>
-                </View>
+                </NeuCard>
               </View>
             )}
 
             {/* ========================================================================= */}
-            {/* STEP 2: PHYSICAL METRICS (WITH CM/FT, KG/LBS & BIKE SPEEDOMETER GAUGE) */}
+            {/* STEP 2: PHYSICAL METRICS */}
             {/* ========================================================================= */}
             {currentStep === 2 && (
               <View>
@@ -314,10 +317,10 @@ export default function AssessmentWizardScreen() {
                 </Text>
 
                 {/* Height Stepper Card with CM / FT Toggle */}
-                <View style={styles.metricInputCard}>
+                <NeuCard variant="raised" padding={16} borderRadius={20} style={styles.metricInputCard}>
                   <View style={styles.metricCardHeader}>
                     <View style={styles.metricIconRow}>
-                      <Activity size={16} color="#10B981" />
+                      <Activity size={16} color={NeuTheme.colors.emerald} />
                       <Text style={styles.metricTitle}>HEIGHT</Text>
                     </View>
 
@@ -348,16 +351,16 @@ export default function AssessmentWizardScreen() {
                     {/* Left: Display / Input */}
                     <View style={styles.metricValueGroup}>
                       {heightUnit === 'CM' ? (
-                        <>
+                        <View style={styles.valueRow}>
                           <TextInput
                             style={styles.metricLargeInput}
                             value={String(heightCm)}
                             keyboardType="numeric"
-                            selectionColor="#10B981"
+                            selectionColor={NeuTheme.colors.emerald}
                             onChangeText={(val) => setHeightCm(parseInt(val, 10) || 0)}
                           />
                           <Text style={styles.metricValueUnit}>cm</Text>
-                        </>
+                        </View>
                       ) : (
                         <View style={styles.ftDisplayRow}>
                           <Text style={styles.metricLargeText}>{heightFeet}</Text>
@@ -368,14 +371,14 @@ export default function AssessmentWizardScreen() {
                       )}
                     </View>
 
-                    {/* Right: + / - Stepper Buttons (Docked to right edge) */}
+                    {/* Right: + / - Stepper Buttons */}
                     <View style={styles.stepperButtons}>
                       <TouchableOpacity
                         onPress={() => handleHeightAdjust(-1)}
                         style={styles.stepperBtn}
                         activeOpacity={0.8}
                       >
-                        <Minus size={16} color="#94A3B8" />
+                        <Minus size={16} color={NeuTheme.colors.textSecondary} />
                       </TouchableOpacity>
 
                       <TouchableOpacity
@@ -383,17 +386,17 @@ export default function AssessmentWizardScreen() {
                         style={[styles.stepperBtn, styles.stepperBtnAdd]}
                         activeOpacity={0.8}
                       >
-                        <Plus size={16} color="#10B981" />
+                        <Plus size={16} color={NeuTheme.colors.emerald} />
                       </TouchableOpacity>
                     </View>
                   </View>
-                </View>
+                </NeuCard>
 
                 {/* Weight Stepper Card with KG / LBS Toggle */}
-                <View style={styles.metricInputCard}>
+                <NeuCard variant="raised" padding={16} borderRadius={20} style={styles.metricInputCard}>
                   <View style={styles.metricCardHeader}>
                     <View style={styles.metricIconRow}>
-                      <Scale size={16} color="#10B981" />
+                      <Scale size={16} color={NeuTheme.colors.emerald} />
                       <Text style={styles.metricTitle}>WEIGHT</Text>
                     </View>
 
@@ -424,41 +427,41 @@ export default function AssessmentWizardScreen() {
                     {/* Left: Display / Input */}
                     <View style={styles.metricValueGroup}>
                       {weightUnit === 'KG' ? (
-                        <>
+                        <View style={styles.valueRow}>
                           <TextInput
                             style={styles.metricLargeInput}
                             value={String(weightKg)}
                             keyboardType="decimal-pad"
-                            selectionColor="#10B981"
+                            selectionColor={NeuTheme.colors.emerald}
                             onChangeText={(val) => setWeightKg(parseFloat(val) || 0)}
                           />
                           <Text style={styles.metricValueUnit}>kg</Text>
-                        </>
+                        </View>
                       ) : (
-                        <>
+                        <View style={styles.valueRow}>
                           <TextInput
                             style={styles.metricLargeInput}
                             value={String(weightInLbs)}
                             keyboardType="decimal-pad"
-                            selectionColor="#10B981"
+                            selectionColor={NeuTheme.colors.emerald}
                             onChangeText={(val) => {
                               const lbs = parseFloat(val) || 0;
                               setWeightKg(Math.round((lbs / 2.20462) * 10) / 10);
                             }}
                           />
                           <Text style={styles.metricValueUnit}>lbs</Text>
-                        </>
+                        </View>
                       )}
                     </View>
 
-                    {/* Right: + / - Stepper Buttons (Docked to right edge) */}
+                    {/* Right: + / - Stepper Buttons */}
                     <View style={styles.stepperButtons}>
                       <TouchableOpacity
                         onPress={() => handleWeightAdjust(-1)}
                         style={styles.stepperBtn}
                         activeOpacity={0.8}
                       >
-                        <Minus size={16} color="#94A3B8" />
+                        <Minus size={16} color={NeuTheme.colors.textSecondary} />
                       </TouchableOpacity>
 
                       <TouchableOpacity
@@ -466,11 +469,11 @@ export default function AssessmentWizardScreen() {
                         style={[styles.stepperBtn, styles.stepperBtnAdd]}
                         activeOpacity={0.8}
                       >
-                        <Plus size={16} color="#10B981" />
+                        <Plus size={16} color={NeuTheme.colors.emerald} />
                       </TouchableOpacity>
                     </View>
                   </View>
-                </View>
+                </NeuCard>
 
                 {/* LIVE BIKE DASHBOARD SPEEDOMETER GAUGE METER */}
                 <SpeedometerGauge bmi={bmiResult.bmi} category={bmiResult.category} />
@@ -490,10 +493,10 @@ export default function AssessmentWizardScreen() {
                 </Text>
 
                 {/* BMR Spotlight Hero Card */}
-                <View style={styles.bmrHeroCard}>
+                <NeuCard variant="raised" padding={18} borderRadius={22} style={styles.bmrHeroCard}>
                   <View style={styles.bmrHeroHeader}>
                     <View style={styles.bmrTitleGroup}>
-                      <Flame size={18} color="#10B981" />
+                      <Flame size={18} color={NeuTheme.colors.emerald} />
                       <Text style={styles.bmrTitleText}>RESTING CALORIE BURN (BMR)</Text>
                     </View>
                     <View style={styles.bmrBadge}>
@@ -509,7 +512,7 @@ export default function AssessmentWizardScreen() {
                   <Text style={styles.bmrExplanation}>
                     This is the energy your body burns strictly at rest powering vital organs, circulation, and muscle repair before workouts.
                   </Text>
-                </View>
+                </NeuCard>
 
                 {/* BMI Speedometer Display on Reveal Screen */}
                 <SpeedometerGauge bmi={bmiResult.bmi} category={bmiResult.category} />
@@ -539,7 +542,8 @@ export default function AssessmentWizardScreen() {
                       tag: 'FAT LOSS DEFICIT',
                       desc: 'Strategic 300-500 kcal deficit tailored to burn body fat while preserving lean muscle.',
                       icon: Flame,
-                      color: '#F59E0B',
+                      color: NeuTheme.colors.amber,
+                      bgColor: NeuTheme.colors.amberBg,
                     },
                     {
                       key: 'MUSCLE_GAIN' as TargetGoal,
@@ -547,7 +551,8 @@ export default function AssessmentWizardScreen() {
                       tag: 'HYPERTROPHY SURPLUS',
                       desc: 'High-protein surplus paired with progressive overload to maximize muscle mass and strength.',
                       icon: Dumbbell,
-                      color: '#10B981',
+                      color: NeuTheme.colors.emerald,
+                      bgColor: NeuTheme.colors.emeraldBg,
                     },
                     {
                       key: 'MAINTENANCE' as TargetGoal,
@@ -555,7 +560,8 @@ export default function AssessmentWizardScreen() {
                       tag: 'METABOLIC EQUILIBRIUM',
                       desc: 'Caloric balance focusing on endurance, recovery, cardiovascular health, and long-term vitality.',
                       icon: HeartPulse,
-                      color: '#06B6D4',
+                      color: NeuTheme.colors.cyan,
+                      bgColor: NeuTheme.colors.cyanBg,
                     },
                   ].map((item) => {
                     const isSelected = targetGoal === item.key;
@@ -572,12 +578,12 @@ export default function AssessmentWizardScreen() {
                             <View
                               style={[
                                 styles.goalIconBox,
-                                { backgroundColor: `${item.color}15` },
+                                { backgroundColor: item.bgColor },
                               ]}
                             >
                               <IconComponent size={18} color={item.color} />
                             </View>
-                            <View>
+                            <View style={{ flex: 1 }}>
                               <Text style={styles.goalMainTitle}>{item.title}</Text>
                               <Text style={[styles.goalTagText, { color: item.color }]}>
                                 {item.tag}
@@ -591,7 +597,7 @@ export default function AssessmentWizardScreen() {
                               isSelected && styles.radioCircleActive,
                             ]}
                           >
-                            {isSelected && <Check size={13} color="#052E16" strokeWidth={3} />}
+                            {isSelected && <Check size={12} color="#FFFFFF" strokeWidth={3} />}
                           </View>
                         </View>
 
@@ -622,7 +628,7 @@ export default function AssessmentWizardScreen() {
                   activeOpacity={0.9}
                 >
                   {isSubmitting ? (
-                    <ActivityIndicator color="#090D16" size="small" />
+                    <ActivityIndicator color="#052E16" size="small" />
                   ) : (
                     <View style={styles.buttonContent}>
                       <Sparkles size={18} color="#052E16" />
@@ -642,14 +648,14 @@ export default function AssessmentWizardScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#161B26',
+    backgroundColor: NeuTheme.colors.background,
   },
   keyboardContainer: {
     flex: 1,
   },
   scrollContent: {
     flexGrow: 1,
-    paddingVertical: 20,
+    paddingVertical: 16,
     paddingHorizontal: 16,
   },
   mobileContainer: {
@@ -660,59 +666,53 @@ const styles = StyleSheet.create({
   errorBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(239, 68, 68, 0.12)',
-    borderTopWidth: 1,
-    borderLeftWidth: 1,
-    borderTopColor: 'rgba(248, 113, 113, 0.3)',
-    borderLeftColor: 'rgba(248, 113, 113, 0.2)',
-    borderBottomWidth: 1.5,
-    borderRightWidth: 1.5,
-    borderBottomColor: '#7F1D1D',
-    borderRightColor: '#7F1D1D',
+    backgroundColor: NeuTheme.colors.coralBg,
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.3)',
     borderRadius: 14,
     padding: 12,
     marginBottom: 16,
     gap: 8,
   },
   errorText: {
-    color: '#FCA5A5',
+    color: NeuTheme.colors.coral,
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '700',
     flex: 1,
   },
   sectionTitle: {
-    fontSize: 25,
+    fontSize: 23,
     fontWeight: '900',
-    color: '#F1F5F9',
+    color: NeuTheme.colors.textPrimary,
     letterSpacing: -0.5,
     marginBottom: 4,
   },
   sectionSubtitle: {
     fontSize: 13,
-    color: '#94A3B8',
-    marginBottom: 20,
+    color: NeuTheme.colors.textSecondary,
+    marginBottom: 18,
     lineHeight: 18,
   },
   neoInputBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#11151F',
+    backgroundColor: NeuTheme.colors.recessedWell,
     borderTopWidth: 1.5,
     borderLeftWidth: 1.5,
-    borderTopColor: '#090C12',
-    borderLeftColor: '#090C12',
-    borderBottomWidth: 1,
-    borderRightWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
-    borderRightColor: 'rgba(255, 255, 255, 0.05)',
+    borderTopColor: 'rgba(163, 177, 198, 0.6)',
+    borderLeftColor: 'rgba(163, 177, 198, 0.6)',
+    borderBottomWidth: 1.5,
+    borderRightWidth: 1.5,
+    borderBottomColor: 'rgba(255, 255, 255, 0.95)',
+    borderRightColor: 'rgba(255, 255, 255, 0.95)',
     borderRadius: 16,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    marginBottom: 20,
+    marginBottom: 18,
   },
   nameInput: {
     flex: 1,
-    color: '#F8FAFC',
+    color: NeuTheme.colors.textPrimary,
     fontSize: 15,
     fontWeight: '600',
     marginLeft: 10,
@@ -725,7 +725,7 @@ const styles = StyleSheet.create({
       : {}),
   },
   fieldLabel: {
-    color: '#64748B',
+    color: NeuTheme.colors.textSecondary,
     fontSize: 11,
     fontWeight: '800',
     letterSpacing: 0.8,
@@ -734,33 +734,27 @@ const styles = StyleSheet.create({
   sexRow: {
     flexDirection: 'row',
     gap: 12,
-    marginBottom: 20,
+    marginBottom: 18,
   },
   sexCard: {
     flex: 1,
-    backgroundColor: '#161B26',
+    backgroundColor: NeuTheme.colors.cardBackground,
+    ...NeuTheme.shadows.raised,
     borderTopWidth: 1.5,
     borderLeftWidth: 1.5,
-    borderTopColor: 'rgba(255, 255, 255, 0.1)',
-    borderLeftColor: 'rgba(255, 255, 255, 0.07)',
-    borderBottomWidth: 2,
-    borderRightWidth: 2,
-    borderBottomColor: '#090C12',
-    borderRightColor: '#090C12',
+    borderTopColor: 'rgba(255, 255, 255, 0.95)',
+    borderLeftColor: 'rgba(255, 255, 255, 0.95)',
+    borderBottomWidth: 1.5,
+    borderRightWidth: 1.5,
+    borderBottomColor: 'rgba(163, 177, 198, 0.4)',
+    borderRightColor: 'rgba(163, 177, 198, 0.4)',
     borderRadius: 18,
     padding: 14,
-    shadowColor: '#000000',
-    shadowOffset: { width: 4, height: 4 },
-    shadowOpacity: 0.5,
-    shadowRadius: 8,
-    elevation: 4,
   },
   sexCardActive: {
-    borderTopColor: '#10B981',
-    borderLeftColor: '#10B981',
-    borderBottomColor: '#065F46',
-    borderRightColor: '#065F46',
-    backgroundColor: '#1B2332',
+    borderColor: NeuTheme.colors.emerald,
+    borderWidth: 2,
+    backgroundColor: '#F0FDF4',
   },
   sexCardHeader: {
     flexDirection: 'row',
@@ -769,63 +763,40 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   sexIconCircle: {
-    width: 34,
-    height: 34,
-    borderRadius: 12,
-    backgroundColor: '#11151F',
-    borderTopWidth: 1,
-    borderLeftWidth: 1,
-    borderTopColor: '#090C12',
-    borderLeftColor: '#090C12',
-    borderBottomWidth: 1,
-    borderRightWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.06)',
-    borderRightColor: 'rgba(255, 255, 255, 0.06)',
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: NeuTheme.colors.recessedWell,
     alignItems: 'center',
     justifyContent: 'center',
   },
   sexTitle: {
-    color: '#F8FAFC',
+    color: NeuTheme.colors.textPrimary,
     fontSize: 15,
     fontWeight: '800',
   },
   sexFormula: {
-    color: '#94A3B8',
+    color: NeuTheme.colors.textSecondary,
     fontSize: 11,
     marginTop: 2,
     fontWeight: '500',
   },
   stepperCard: {
-    backgroundColor: '#161B26',
-    borderTopWidth: 1.5,
-    borderLeftWidth: 1.5,
-    borderTopColor: 'rgba(255, 255, 255, 0.1)',
-    borderLeftColor: 'rgba(255, 255, 255, 0.07)',
-    borderBottomWidth: 2,
-    borderRightWidth: 2,
-    borderBottomColor: '#090C12',
-    borderRightColor: '#090C12',
-    borderRadius: 18,
-    padding: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 20,
-    shadowColor: '#000000',
-    shadowOffset: { width: 5, height: 5 },
-    shadowOpacity: 0.5,
-    shadowRadius: 10,
-    elevation: 5,
+    marginBottom: 18,
   },
   stepperBigValue: {
-    color: '#F8FAFC',
-    fontSize: 34,
+    color: NeuTheme.colors.textPrimary,
+    fontSize: 32,
     fontWeight: '900',
   },
   stepperUnit: {
-    color: '#94A3B8',
+    color: NeuTheme.colors.textSecondary,
     fontSize: 12,
-    marginTop: 2,
+    marginTop: 1,
+    fontWeight: '600',
   },
   stepperButtons: {
     flexDirection: 'row',
@@ -833,56 +804,33 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   stepperBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    backgroundColor: '#161B26',
-    borderTopWidth: 1.5,
-    borderLeftWidth: 1.5,
-    borderTopColor: 'rgba(255, 255, 255, 0.12)',
-    borderLeftColor: 'rgba(255, 255, 255, 0.08)',
-    borderBottomWidth: 2,
-    borderRightWidth: 2,
-    borderBottomColor: '#090C12',
-    borderRightColor: '#090C12',
+    width: 42,
+    height: 42,
+    borderRadius: 13,
+    backgroundColor: NeuTheme.colors.cardBackground,
+    ...NeuTheme.shadows.raisedSmall,
+    borderTopWidth: 1,
+    borderLeftWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.95)',
+    borderLeftColor: 'rgba(255, 255, 255, 0.95)',
+    borderBottomWidth: 1,
+    borderRightWidth: 1,
+    borderBottomColor: 'rgba(163, 177, 198, 0.4)',
+    borderRightColor: 'rgba(163, 177, 198, 0.4)',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000000',
-    shadowOffset: { width: 3, height: 3 },
-    shadowOpacity: 0.4,
-    shadowRadius: 6,
   },
   stepperBtnAdd: {
-    backgroundColor: '#1B2332',
-    borderTopColor: '#34D399',
-    borderLeftColor: '#34D399',
-    borderBottomColor: '#065F46',
-    borderRightColor: '#065F46',
+    backgroundColor: NeuTheme.colors.emeraldBg,
   },
   metricInputCard: {
-    backgroundColor: '#161B26',
-    borderTopWidth: 1.5,
-    borderLeftWidth: 1.5,
-    borderTopColor: 'rgba(255, 255, 255, 0.1)',
-    borderLeftColor: 'rgba(255, 255, 255, 0.07)',
-    borderBottomWidth: 2,
-    borderRightWidth: 2,
-    borderBottomColor: '#090C12',
-    borderRightColor: '#090C12',
-    borderRadius: 20,
-    padding: 16,
     marginBottom: 14,
-    shadowColor: '#000000',
-    shadowOffset: { width: 5, height: 5 },
-    shadowOpacity: 0.5,
-    shadowRadius: 10,
-    elevation: 5,
   },
   metricCardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 8,
   },
   metricIconRow: {
     flexDirection: 'row',
@@ -890,50 +838,34 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   metricTitle: {
-    color: '#64748B',
+    color: NeuTheme.colors.textSecondary,
     fontSize: 11,
     fontWeight: '800',
     letterSpacing: 0.8,
   },
-  // Unit Switcher Toggle Button Group
   unitToggleGroup: {
     flexDirection: 'row',
-    backgroundColor: '#11151F',
-    borderRadius: 12,
+    backgroundColor: NeuTheme.colors.recessedWell,
+    borderRadius: 10,
     padding: 3,
-    borderTopWidth: 1,
-    borderLeftWidth: 1,
-    borderTopColor: '#090C12',
-    borderLeftColor: '#090C12',
-    borderBottomWidth: 1,
-    borderRightWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
-    borderRightColor: 'rgba(255, 255, 255, 0.05)',
   },
   unitToggleBtn: {
     paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
+    paddingVertical: 3,
+    borderRadius: 7,
   },
   unitToggleBtnActive: {
-    backgroundColor: '#1B2332',
-    borderTopWidth: 1,
-    borderLeftWidth: 1,
-    borderTopColor: 'rgba(52, 211, 153, 0.4)',
-    borderLeftColor: 'rgba(52, 211, 153, 0.3)',
-    borderBottomWidth: 1,
-    borderRightWidth: 1,
-    borderBottomColor: '#064E3B',
-    borderRightColor: '#064E3B',
+    backgroundColor: NeuTheme.colors.cardBackground,
+    ...NeuTheme.shadows.raisedSmall,
   },
   unitToggleText: {
-    color: '#64748B',
+    color: NeuTheme.colors.textSecondary,
     fontSize: 10,
     fontWeight: '700',
   },
   unitToggleTextActive: {
-    color: '#34D399',
-    fontWeight: '800',
+    color: NeuTheme.colors.emerald,
+    fontWeight: '900',
   },
   metricControlRow: {
     flexDirection: 'row',
@@ -945,12 +877,18 @@ const styles = StyleSheet.create({
     alignItems: 'baseline',
     flex: 1,
   },
+  valueRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+  },
   metricLargeInput: {
-    color: '#F8FAFC',
-    fontSize: 36,
+    color: NeuTheme.colors.textPrimary,
+    fontSize: 32,
     fontWeight: '900',
-    minWidth: 70,
+    minWidth: 60,
     backgroundColor: 'transparent',
+    padding: 0,
+    margin: 0,
     ...(Platform.OS === 'web'
       ? ({
           outlineStyle: 'none',
@@ -959,8 +897,8 @@ const styles = StyleSheet.create({
       : {}),
   },
   metricValueUnit: {
-    color: '#64748B',
-    fontSize: 16,
+    color: NeuTheme.colors.textSecondary,
+    fontSize: 15,
     fontWeight: '800',
     marginLeft: 6,
   },
@@ -969,40 +907,26 @@ const styles = StyleSheet.create({
     alignItems: 'baseline',
   },
   metricLargeText: {
-    color: '#F8FAFC',
-    fontSize: 34,
+    color: NeuTheme.colors.textPrimary,
+    fontSize: 32,
     fontWeight: '900',
   },
   metricSubUnit: {
-    color: '#64748B',
+    color: NeuTheme.colors.textSecondary,
     fontSize: 14,
     fontWeight: '700',
     marginLeft: 3,
   },
   bmrHeroCard: {
-    backgroundColor: '#161B26',
-    borderTopWidth: 2,
-    borderLeftWidth: 2,
-    borderTopColor: 'rgba(52, 211, 153, 0.4)',
-    borderLeftColor: 'rgba(52, 211, 153, 0.3)',
-    borderBottomWidth: 2.5,
-    borderRightWidth: 2.5,
-    borderBottomColor: '#064E3B',
-    borderRightColor: '#064E3B',
-    borderRadius: 22,
-    padding: 18,
-    marginBottom: 16,
-    shadowColor: '#000000',
-    shadowOffset: { width: 6, height: 6 },
-    shadowOpacity: 0.6,
-    shadowRadius: 14,
-    elevation: 6,
+    marginBottom: 14,
+    borderWidth: 1.5,
+    borderColor: 'rgba(16, 185, 129, 0.4)',
   },
   bmrHeroHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   bmrTitleGroup: {
     flexDirection: 'row',
@@ -1010,80 +934,67 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   bmrTitleText: {
-    color: '#34D399',
+    color: '#047857',
     fontSize: 11,
-    fontWeight: '800',
+    fontWeight: '900',
     letterSpacing: 0.8,
   },
   bmrBadge: {
-    backgroundColor: '#11151F',
-    borderTopWidth: 1,
-    borderLeftWidth: 1,
-    borderTopColor: '#090C12',
-    borderLeftColor: '#090C12',
-    borderBottomWidth: 1,
-    borderRightWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.06)',
-    borderRightColor: 'rgba(255, 255, 255, 0.06)',
+    backgroundColor: NeuTheme.colors.emeraldBg,
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 10,
+    borderRadius: 8,
   },
   bmrBadgeText: {
-    color: '#10B981',
+    color: '#047857',
     fontSize: 11,
     fontWeight: '800',
   },
   bmrValueRow: {
     flexDirection: 'row',
     alignItems: 'baseline',
-    marginVertical: 6,
+    marginVertical: 4,
   },
   bmrNumber: {
-    color: '#F8FAFC',
-    fontSize: 42,
+    color: NeuTheme.colors.textPrimary,
+    fontSize: 38,
     fontWeight: '900',
     letterSpacing: -1,
   },
   bmrUnit: {
-    color: '#94A3B8',
+    color: NeuTheme.colors.textSecondary,
     fontSize: 14,
     fontWeight: '700',
     marginLeft: 8,
   },
   bmrExplanation: {
-    color: '#CBD5E1',
+    color: NeuTheme.colors.textSecondary,
     fontSize: 12,
-    lineHeight: 18,
-    marginTop: 4,
+    lineHeight: 17,
+    marginTop: 2,
   },
   goalsList: {
     gap: 12,
-    marginBottom: 20,
+    marginBottom: 18,
   },
   goalCard: {
-    backgroundColor: '#161B26',
+    backgroundColor: NeuTheme.colors.cardBackground,
+    ...NeuTheme.shadows.raised,
     borderTopWidth: 1.5,
     borderLeftWidth: 1.5,
-    borderTopColor: 'rgba(255, 255, 255, 0.1)',
-    borderLeftColor: 'rgba(255, 255, 255, 0.07)',
-    borderBottomWidth: 2,
-    borderRightWidth: 2,
-    borderBottomColor: '#090C12',
-    borderRightColor: '#090C12',
+    borderTopColor: 'rgba(255, 255, 255, 0.95)',
+    borderLeftColor: 'rgba(255, 255, 255, 0.95)',
+    borderBottomWidth: 1.5,
+    borderRightWidth: 1.5,
+    borderBottomColor: 'rgba(163, 177, 198, 0.4)',
+    borderRightColor: 'rgba(163, 177, 198, 0.4)',
     borderRadius: 20,
-    padding: 16,
-    shadowColor: '#000000',
-    shadowOffset: { width: 5, height: 5 },
-    shadowOpacity: 0.5,
-    shadowRadius: 10,
+    padding: 15,
   },
   goalCardActive: {
-    borderTopColor: '#10B981',
-    borderLeftColor: '#10B981',
-    borderBottomColor: '#065F46',
-    borderRightColor: '#065F46',
-    backgroundColor: '#1B2332',
+    borderColor: NeuTheme.colors.emerald,
+    borderWidth: 2,
+    backgroundColor: '#F0FDF4',
   },
   goalCardTop: {
     flexDirection: 'row',
@@ -1095,113 +1006,87 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
+    flex: 1,
   },
   goalIconBox: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    backgroundColor: '#11151F',
-    borderTopWidth: 1,
-    borderLeftWidth: 1,
-    borderTopColor: '#090C12',
-    borderLeftColor: '#090C12',
-    borderBottomWidth: 1,
-    borderRightWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.06)',
-    borderRightColor: 'rgba(255, 255, 255, 0.06)',
+    width: 36,
+    height: 36,
+    borderRadius: 11,
     alignItems: 'center',
     justifyContent: 'center',
   },
   goalMainTitle: {
-    color: '#F8FAFC',
-    fontSize: 15,
+    color: NeuTheme.colors.textPrimary,
+    fontSize: 14.5,
     fontWeight: '800',
   },
   goalTagText: {
     fontSize: 10,
     fontWeight: '800',
     letterSpacing: 0.5,
-    marginTop: 2,
+    marginTop: 1,
   },
   radioCircle: {
     width: 22,
     height: 22,
     borderRadius: 11,
-    backgroundColor: '#11151F',
-    borderTopWidth: 1,
-    borderLeftWidth: 1,
-    borderTopColor: '#090C12',
-    borderLeftColor: '#090C12',
-    borderBottomWidth: 1,
-    borderRightWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.06)',
-    borderRightColor: 'rgba(255, 255, 255, 0.06)',
+    backgroundColor: NeuTheme.colors.recessedWell,
     alignItems: 'center',
     justifyContent: 'center',
+    marginLeft: 8,
   },
   radioCircleActive: {
-    backgroundColor: '#10B981',
-    borderTopColor: '#34D399',
-    borderLeftColor: '#34D399',
-    borderBottomColor: '#065F46',
-    borderRightColor: '#065F46',
+    backgroundColor: NeuTheme.colors.emerald,
   },
   goalDescription: {
-    color: '#94A3B8',
+    color: NeuTheme.colors.textSecondary,
     fontSize: 12,
-    lineHeight: 17,
-    paddingLeft: 48,
+    lineHeight: 16.5,
+    paddingLeft: 46,
   },
   bottomNav: {
-    marginTop: 10,
+    marginTop: 8,
+    marginBottom: 24,
   },
   continueButton: {
-    backgroundColor: '#10B981',
+    backgroundColor: NeuTheme.colors.emerald,
     borderRadius: 16,
-    paddingVertical: 16,
+    paddingVertical: 15,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    borderTopWidth: 2,
-    borderLeftWidth: 2,
-    borderTopColor: '#6EE7B7',
-    borderLeftColor: '#34D399',
-    borderBottomWidth: 3,
-    borderRightWidth: 3,
+    ...NeuTheme.shadows.raised,
+    borderTopWidth: 1.5,
+    borderLeftWidth: 1.5,
+    borderTopColor: 'rgba(255, 255, 255, 0.4)',
+    borderLeftColor: 'rgba(255, 255, 255, 0.4)',
+    borderBottomWidth: 2,
+    borderRightWidth: 2,
     borderBottomColor: '#047857',
     borderRightColor: '#047857',
-    shadowColor: '#000000',
-    shadowOffset: { width: 6, height: 6 },
-    shadowOpacity: 0.55,
-    shadowRadius: 14,
-    elevation: 8,
   },
   continueButtonText: {
     color: '#052E16',
-    fontSize: 16,
+    fontSize: 15.5,
     fontWeight: '900',
     letterSpacing: 0.4,
   },
   submitButton: {
-    backgroundColor: '#10B981',
+    backgroundColor: NeuTheme.colors.emerald,
     borderRadius: 16,
-    paddingVertical: 16,
+    paddingVertical: 15,
     alignItems: 'center',
     justifyContent: 'center',
-    borderTopWidth: 2,
-    borderLeftWidth: 2,
-    borderTopColor: '#6EE7B7',
-    borderLeftColor: '#34D399',
-    borderBottomWidth: 3,
-    borderRightWidth: 3,
+    ...NeuTheme.shadows.raised,
+    borderTopWidth: 1.5,
+    borderLeftWidth: 1.5,
+    borderTopColor: 'rgba(255, 255, 255, 0.4)',
+    borderLeftColor: 'rgba(255, 255, 255, 0.4)',
+    borderBottomWidth: 2,
+    borderRightWidth: 2,
     borderBottomColor: '#047857',
     borderRightColor: '#047857',
-    shadowColor: '#000000',
-    shadowOffset: { width: 6, height: 6 },
-    shadowOpacity: 0.55,
-    shadowRadius: 14,
-    elevation: 8,
   },
   buttonContent: {
     flexDirection: 'row',
@@ -1210,7 +1095,7 @@ const styles = StyleSheet.create({
   },
   submitButtonText: {
     color: '#052E16',
-    fontSize: 16,
+    fontSize: 15.5,
     fontWeight: '900',
     letterSpacing: 0.4,
   },

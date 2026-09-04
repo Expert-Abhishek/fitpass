@@ -1,6 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Sparkles, Bot } from 'lucide-react-native';
+import { NeuTheme } from '../theme/neumorphic';
+import NeuCard from './neumorphic/NeuCard';
 
 interface CoachTipProps {
   message: string;
@@ -14,105 +16,73 @@ export function CoachTip({
   badge = 'AI COACH INSIGHT',
 }: CoachTipProps) {
   return (
-    <View style={styles.container}>
+    <NeuCard variant="raised" padding={14} borderRadius={18} style={styles.container}>
       <View style={styles.header}>
         <View style={styles.coachBadge}>
           <View style={styles.avatar}>
-            <Bot size={16} color="#10B981" />
+            <Bot size={15} color={NeuTheme.colors.emerald} />
           </View>
           <Text style={styles.coachName}>{coachName}</Text>
         </View>
 
         <View style={styles.tag}>
-          <Sparkles size={11} color="#34D399" />
+          <Sparkles size={10} color="#047857" />
           <Text style={styles.tagText}>{badge}</Text>
         </View>
       </View>
 
       <Text style={styles.message}>"{message}"</Text>
-    </View>
+    </NeuCard>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#161B26',
-    borderRadius: 20,
-    padding: 16,
-    marginBottom: 20,
-    borderTopWidth: 1.5,
-    borderLeftWidth: 1.5,
-    borderTopColor: 'rgba(255, 255, 255, 0.1)',
-    borderLeftColor: 'rgba(255, 255, 255, 0.07)',
-    borderBottomWidth: 2,
-    borderRightWidth: 2,
-    borderBottomColor: '#0A0D13',
-    borderRightColor: '#0A0D13',
-    shadowColor: '#000000',
-    shadowOffset: { width: 6, height: 6 },
-    shadowOpacity: 0.5,
-    shadowRadius: 14,
-    elevation: 6,
+    marginBottom: 16,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 10,
+    marginBottom: 8,
   },
   coachBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 7,
   },
   avatar: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: '#11151F',
-    borderTopWidth: 1,
-    borderLeftWidth: 1,
-    borderTopColor: '#090C12',
-    borderLeftColor: '#090C12',
-    borderBottomWidth: 1,
-    borderRightWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.06)',
-    borderRightColor: 'rgba(255, 255, 255, 0.06)',
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: NeuTheme.colors.emeraldBg,
     alignItems: 'center',
     justifyContent: 'center',
   },
   coachName: {
-    color: '#F8FAFC',
+    color: NeuTheme.colors.textPrimary,
     fontWeight: '800',
-    fontSize: 14,
+    fontSize: 13.5,
   },
   tag: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#11151F',
-    borderTopWidth: 1,
-    borderLeftWidth: 1,
-    borderTopColor: '#090C12',
-    borderLeftColor: '#090C12',
-    borderBottomWidth: 1,
-    borderRightWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.06)',
-    borderRightColor: 'rgba(255, 255, 255, 0.06)',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 14,
-    gap: 4,
+    backgroundColor: NeuTheme.colors.emeraldBg,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
+    gap: 3,
   },
   tagText: {
-    color: '#34D399',
-    fontSize: 10,
+    color: '#047857',
+    fontSize: 9.5,
     fontWeight: '800',
     letterSpacing: 0.5,
   },
   message: {
-    color: '#CBD5E1',
-    fontSize: 13,
-    lineHeight: 20,
+    color: NeuTheme.colors.textPrimary,
+    fontSize: 12.5,
+    lineHeight: 18,
     fontWeight: '500',
   },
 });
