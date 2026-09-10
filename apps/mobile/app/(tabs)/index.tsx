@@ -19,6 +19,7 @@ import EnergyBalanceChart from '../../src/components/dashboard/EnergyBalanceChar
 import AIPostureInsightChip from '../../src/components/dashboard/AIPostureInsightChip';
 import AddMealModal from '../../src/components/dashboard/AddMealModal';
 import AIMealScannerModal from '../../src/components/dashboard/AIMealScannerModal';
+import AIExerciseTrackerModal from '../../src/components/exercise/AIExerciseTrackerModal';
 import DashboardSkeleton from '../../src/components/dashboard/DashboardSkeleton';
 
 export default function DashboardScreen() {
@@ -44,6 +45,7 @@ export default function DashboardScreen() {
 
   const [isAddMealVisible, setIsAddMealVisible] = useState(false);
   const [isAIScannerVisible, setIsAIScannerVisible] = useState(false);
+  const [isWorkoutModalVisible, setIsWorkoutModalVisible] = useState(false);
 
   // Dynamic Assessment parameters
   const bmr = latestAssessment?.bmr ? Number(latestAssessment.bmr) : 1750;
@@ -105,10 +107,13 @@ export default function DashboardScreen() {
   };
 
   const handleStartWorkout = () => {
-    Alert.alert(
-      'AI Workout Engine',
-      'Module 2 Realtime Pose Detection & Rep Counter is calibrated and ready.'
-    );
+    setIsWorkoutModalVisible(true);
+  };
+
+  const handleWorkoutCompleted = (summary: any) => {
+    if (authUser?.id) {
+      fetchDashboardData(authUser.id, bmr, targetGoal, weightKg, true);
+    }
   };
 
   const handleSnapPhotoAI = () => {
@@ -189,6 +194,13 @@ export default function DashboardScreen() {
         visible={isAIScannerVisible}
         onClose={() => setIsAIScannerVisible(false)}
         onSaveMeal={handleSaveMeal}
+      />
+
+      {/* AI Real-Time Exercise & Cardio Tracker Modal */}
+      <AIExerciseTrackerModal
+        visible={isWorkoutModalVisible}
+        onClose={() => setIsWorkoutModalVisible(false)}
+        onWorkoutCompleted={handleWorkoutCompleted}
       />
     </SafeAreaView>
   );

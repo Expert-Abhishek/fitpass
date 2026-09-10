@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "d1544f81-794a-482a-9231-33da968da606"
+      }
+    },
+    "android": {
+      "package": "com.abhishekchauhan.fitnessappmonorepo"
+    }
+  }
+}
