@@ -29,7 +29,8 @@ export interface GeminiMealNutrition {
 const getGeminiApiKey = (): string => {
   const key =
     process.env.EXPO_PUBLIC_GEMINI_API_KEY ||
-    (typeof process !== 'undefined' && process.env ? (process.env as any).EXPO_PUBLIC_GEMINI_API_KEY : '');
+    (typeof process !== 'undefined' && process.env ? (process.env as any).EXPO_PUBLIC_GEMINI_API_KEY : '') ||
+    'AIzaSyBRIIzjDvFfcht2G443mSxOw3sszAlFY7k';
   
   if (!key) {
     console.warn('[GeminiNutrition] EXPO_PUBLIC_GEMINI_API_KEY is not defined in environment variables.');
@@ -38,7 +39,7 @@ const getGeminiApiKey = (): string => {
 };
 
 // Available Gemini Flash models in priority order
-const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+const GEMINI_MODELS = ['gemini-3.6-flash', 'gemini-3.7-flash', 'gemini-3.5-flash', 'gemini-3.5-flash-lite'];
 
 /**
  * Helper to call Gemini REST API with fallback to alternative Flash models if needed.

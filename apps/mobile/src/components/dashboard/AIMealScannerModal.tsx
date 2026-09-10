@@ -187,7 +187,7 @@ export default function AIMealScannerModal({
     }, 1200);
 
     const timer2 = setTimeout(() => {
-      setScanStatusText('Gemini 2.5 Flash computing nutrition facts...');
+      setScanStatusText('Gemini Flash computing nutrition facts...');
     }, 2400);
 
     try {

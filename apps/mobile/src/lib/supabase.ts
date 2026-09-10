@@ -4,9 +4,12 @@ import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 import { Database } from '@fitness/types';
 
+const CHUNK_SIZE = 1024;
+
 /**
  * Custom Storage Adapter bridging Supabase Auth session persistence
  * with Expo SecureStore on Native platforms and window.localStorage on Web.
+ * Safely chunks items larger than 1024 bytes to conform to SecureStore limits.
  */
 const ExpoSecureStoreAdapter = {
   getItem: async (key: string): Promise<string | null> => {
@@ -16,6 +19,16 @@ const ExpoSecureStoreAdapter = {
           return window.localStorage.getItem(key);
         }
         return null;
+      }
+      const chunkCountStr = await SecureStore.getItemAsync(`${key}_chunks`);
+      if (chunkCountStr) {
+        const count = parseInt(chunkCountStr, 10);
+        let combined = '';
+        for (let i = 0; i < count; i++) {
+          const chunk = await SecureStore.getItemAsync(`${key}_chunk_${i}`);
+          if (chunk) combined += chunk;
+        }
+        return combined || null;
       }
       return await SecureStore.getItemAsync(key);
     } catch {
@@ -30,7 +43,17 @@ const ExpoSecureStoreAdapter = {
         }
         return;
       }
-      await SecureStore.setItemAsync(key, value);
+      if (value.length > CHUNK_SIZE) {
+        const chunkCount = Math.ceil(value.length / CHUNK_SIZE);
+        await SecureStore.setItemAsync(`${key}_chunks`, String(chunkCount));
+        for (let i = 0; i < chunkCount; i++) {
+          const chunk = value.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
+          await SecureStore.setItemAsync(`${key}_chunk_${i}`, chunk);
+        }
+      } else {
+        await SecureStore.deleteItemAsync(`${key}_chunks`).catch(() => {});
+        await SecureStore.setItemAsync(key, value);
+      }
     } catch {
       // Ignore storage errors in restricted contexts
     }
@@ -42,6 +65,14 @@ const ExpoSecureStoreAdapter = {
           window.localStorage.removeItem(key);
         }
         return;
+      }
+      const chunkCountStr = await SecureStore.getItemAsync(`${key}_chunks`);
+      if (chunkCountStr) {
+        const count = parseInt(chunkCountStr, 10);
+        for (let i = 0; i < count; i++) {
+          await SecureStore.deleteItemAsync(`${key}_chunk_${i}`).catch(() => {});
+        }
+        await SecureStore.deleteItemAsync(`${key}_chunks`).catch(() => {});
       }
       await SecureStore.deleteItemAsync(key);
     } catch {
