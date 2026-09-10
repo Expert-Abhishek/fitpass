@@ -18,6 +18,7 @@ import WaterTracker from '../../src/components/dashboard/WaterTracker';
 import EnergyBalanceChart from '../../src/components/dashboard/EnergyBalanceChart';
 import AIPostureInsightChip from '../../src/components/dashboard/AIPostureInsightChip';
 import AddMealModal from '../../src/components/dashboard/AddMealModal';
+import AIMealScannerModal from '../../src/components/dashboard/AIMealScannerModal';
 import DashboardSkeleton from '../../src/components/dashboard/DashboardSkeleton';
 
 export default function DashboardScreen() {
@@ -42,6 +43,7 @@ export default function DashboardScreen() {
   } = useDashboardStore();
 
   const [isAddMealVisible, setIsAddMealVisible] = useState(false);
+  const [isAIScannerVisible, setIsAIScannerVisible] = useState(false);
 
   // Dynamic Assessment parameters
   const bmr = latestAssessment?.bmr ? Number(latestAssessment.bmr) : 1750;
@@ -110,10 +112,7 @@ export default function DashboardScreen() {
   };
 
   const handleSnapPhotoAI = () => {
-    Alert.alert(
-      'AI Meal Scanner',
-      'Module 3 Computer Vision meal scanning will auto-estimate portions, calories, and macros.'
-    );
+    setIsAIScannerVisible(true);
   };
 
   const athleteName = profile?.full_name || authUser?.email?.split('@')[0] || 'Athlete';
@@ -157,6 +156,7 @@ export default function DashboardScreen() {
               <MacroBreakdown
                 data={macroData}
                 onAddMealPress={() => setIsAddMealVisible(true)}
+                onSnapPhotoAI={handleSnapPhotoAI}
               />
 
               {/* Smart Water Intake Tracker */}
@@ -182,6 +182,13 @@ export default function DashboardScreen() {
         onClose={() => setIsAddMealVisible(false)}
         onSaveMeal={handleSaveMeal}
         onSnapPhotoAI={handleSnapPhotoAI}
+      />
+
+      {/* Gemini Flash AI Vision Meal Scanner Modal */}
+      <AIMealScannerModal
+        visible={isAIScannerVisible}
+        onClose={() => setIsAIScannerVisible(false)}
+        onSaveMeal={handleSaveMeal}
       />
     </SafeAreaView>
   );

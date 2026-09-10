@@ -5,7 +5,7 @@ import {
   Text,
   TouchableOpacity,
 } from 'react-native';
-import { Plus, Flame } from 'lucide-react-native';
+import { Plus, Flame, Camera } from 'lucide-react-native';
 import { NeuTheme } from '../../theme/neumorphic';
 import NeuCard from '../neumorphic/NeuCard';
 import { MacroData } from '../../stores/dashboardStore';
@@ -13,11 +13,13 @@ import { MacroData } from '../../stores/dashboardStore';
 interface MacroBreakdownProps {
   data: MacroData;
   onAddMealPress: () => void;
+  onSnapPhotoAI?: () => void;
 }
 
 export default function MacroBreakdown({
   data,
   onAddMealPress,
+  onSnapPhotoAI,
 }: MacroBreakdownProps) {
   const targetKcal = data.caloriesTarget || 2000;
   const consumedKcal = data.caloriesConsumed || 0;
@@ -70,14 +72,27 @@ export default function MacroBreakdown({
           <Text style={styles.title} numberOfLines={1}>Energy Distribution</Text>
         </View>
 
-        <TouchableOpacity
-          onPress={onAddMealPress}
-          style={styles.addMealButton}
-          activeOpacity={0.85}
-        >
-          <Plus size={15} color="#052E16" strokeWidth={2.8} />
-          <Text style={styles.addMealButtonText}>Add Meal</Text>
-        </TouchableOpacity>
+        <View style={styles.headerButtonsRow}>
+          {onSnapPhotoAI && (
+            <TouchableOpacity
+              onPress={onSnapPhotoAI}
+              style={styles.aiSnapMiniBtn}
+              activeOpacity={0.85}
+            >
+              <Camera size={14} color="#047857" strokeWidth={2.4} />
+              <Text style={styles.aiSnapMiniBtnText}>AI Scan</Text>
+            </TouchableOpacity>
+          )}
+
+          <TouchableOpacity
+            onPress={onAddMealPress}
+            style={styles.addMealButton}
+            activeOpacity={0.85}
+          >
+            <Plus size={15} color="#052E16" strokeWidth={2.8} />
+            <Text style={styles.addMealButtonText}>Add</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Hero Calorie Meter Banner */}
@@ -182,6 +197,27 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     color: NeuTheme.colors.textPrimary,
     letterSpacing: -0.3,
+  },
+  headerButtonsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  aiSnapMiniBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#D1FAE5',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+    gap: 4,
+    borderWidth: 1,
+    borderColor: '#6EE7B7',
+  },
+  aiSnapMiniBtnText: {
+    fontSize: 11.5,
+    fontWeight: '800',
+    color: '#065F46',
   },
   addMealButton: {
     flexDirection: 'row',

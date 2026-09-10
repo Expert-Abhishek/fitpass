@@ -10,11 +10,14 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@babel/runtime": "^7.25.0",
+    "@expo/metro-runtime": "~6.1.2",
     "@fitness/types": "workspace:*",
     "@fitness/utils": "workspace:*",
     "@supabase/supabase-js": "^2.48.1",
     "expo": "~54.0.37",
     "expo-constants": "~18.0.14",
+    "expo-image-picker": "^57.0.16",
     "expo-linking": "~8.0.12",
     "expo-router": "~6.0.24",
     "expo-secure-store": "~15.0.8",
@@ -28,8 +31,6 @@
     "react-native-svg": "15.12.1",
     "react-native-url-polyfill": "^2.0.0",
     "react-native-web": "^0.21.0",
-    "@expo/metro-runtime": "~6.1.2",
-    "@babel/runtime": "^7.25.0",
     "zustand": "^5.0.3"
   },
   "devDependencies": {

@@ -19,10 +19,12 @@ import {
   Flame,
   Check,
   Sparkles,
+  Zap,
 } from 'lucide-react-native';
 import { NeuTheme } from '../../theme/neumorphic';
 import NeuCard from '../neumorphic/NeuCard';
 import { NewMealPayload } from '../../stores/dashboardStore';
+import { analyzeMealTextWithGemini } from '../../lib/geminiNutrition';
 
 export type { NewMealPayload };
 
@@ -45,6 +47,8 @@ export default function AddMealModal({
   const [protein, setProtein] = useState('');
   const [carbs, setCarbs] = useState('');
   const [fats, setFats] = useState('');
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [isAiCalculating, setIsAiCalculating] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const mealTypes: ('Breakfast' | 'Lunch' | 'Dinner' | 'Snack')[] = [
@@ -53,6 +57,30 @@ export default function AddMealModal({
     'Dinner',
     'Snack',
   ];
+
+  const handleAiAutoFill = async () => {
+    if (!aiPrompt.trim()) {
+      Alert.alert('Empty Description', 'Please type a meal description (e.g. "2 boiled eggs with oatmeal and almonds")');
+      return;
+    }
+
+    try {
+      setIsAiCalculating(true);
+      const result = await analyzeMealTextWithGemini(aiPrompt.trim());
+      setMealName(result.meal_name);
+      setMealType(result.meal_type);
+      setCalories(String(result.calories));
+      setProtein(String(result.protein));
+      setCarbs(String(result.carbs));
+      setFats(String(result.fats));
+      setAiPrompt('');
+      Alert.alert('AI Auto-Filled! ✨', `Estimated ${result.calories} kcal with ${result.protein}g Protein.`);
+    } catch (err: any) {
+      Alert.alert('AI Calculation Note', err.message || 'Could not parse meal description.');
+    } finally {
+      setIsAiCalculating(false);
+    }
+  };
 
   const handleSave = async () => {
     if (!mealName.trim()) {
@@ -87,6 +115,7 @@ export default function AddMealModal({
       setProtein('');
       setCarbs('');
       setFats('');
+      setAiPrompt('');
       onClose();
     } catch (err: any) {
       Alert.alert('Error', err.message || 'Failed to save meal.');
@@ -156,17 +185,51 @@ export default function AddMealModal({
               <View style={{ flex: 1 }}>
                 <View style={styles.aiTag}>
                   <Sparkles size={10} color="#047857" />
-                  <Text style={styles.aiTagText}>COMPUTER VISION SCAN</Text>
+                  <Text style={styles.aiTagText}>GEMINI FLASH VISION SCAN</Text>
                 </View>
                 <Text style={styles.aiSnapTitle}>Snap Meal with AI Camera</Text>
-                <Text style={styles.aiSnapDesc}>Auto-detect portions, calories & macros</Text>
+                <Text style={styles.aiSnapDesc}>Auto-detect food items, portions, calories & macros</Text>
               </View>
             </TouchableOpacity>
 
-            {/* Divider with 'OR MANUAL ENTRY' */}
+            {/* AI Text Quick Parse Box */}
+            <View style={styles.aiTextPromptBox}>
+              <View style={styles.aiPromptHeader}>
+                <Sparkles size={12} color="#047857" />
+                <Text style={styles.aiPromptLabel}>GEMINI FLASH AI AUTO-ESTIMATE</Text>
+              </View>
+              <View style={styles.aiPromptInputRow}>
+                <NeuCard variant="inset" padding={10} borderRadius={12} style={styles.aiPromptCard}>
+                  <TextInput
+                    style={styles.aiPromptInput}
+                    placeholder="e.g. 2 eggs, 1 toast with butter & tea"
+                    placeholderTextColor={NeuTheme.colors.textMuted}
+                    value={aiPrompt}
+                    onChangeText={setAiPrompt}
+                  />
+                </NeuCard>
+                <TouchableOpacity
+                  onPress={handleAiAutoFill}
+                  disabled={isAiCalculating}
+                  style={styles.aiPromptBtn}
+                  activeOpacity={0.8}
+                >
+                  {isAiCalculating ? (
+                    <ActivityIndicator size="small" color="#052E16" />
+                  ) : (
+                    <>
+                      <Zap size={14} color="#052E16" />
+                      <Text style={styles.aiPromptBtnText}>Auto-Fill</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Divider with 'MANUAL EDIT / DETAILS' */}
             <View style={styles.dividerRow}>
               <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>OR MANUAL ENTRY</Text>
+              <Text style={styles.dividerText}>MEAL DETAILS</Text>
               <View style={styles.dividerLine} />
             </View>
 
@@ -414,6 +477,66 @@ const styles = StyleSheet.create({
     fontSize: 11.5,
     color: '#065F46',
     fontWeight: '500',
+  },
+  aiTextPromptBox: {
+    backgroundColor: '#F0FDF4',
+    borderRadius: 16,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+    marginBottom: 12,
+  },
+  aiPromptHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginBottom: 8,
+  },
+  aiPromptLabel: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#047857',
+    letterSpacing: 0.6,
+  },
+  aiPromptInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  aiPromptCard: {
+    flex: 1,
+  },
+  aiPromptInput: {
+    fontSize: 12.5,
+    fontWeight: '600',
+    color: NeuTheme.colors.textPrimary,
+    padding: 0,
+    backgroundColor: 'transparent',
+    ...(Platform.OS === 'web'
+      ? ({
+          outlineStyle: 'none',
+          outlineWidth: 0,
+        } as any)
+      : {}),
+  },
+  aiPromptBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: NeuTheme.colors.emerald,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+    shadowColor: NeuTheme.colors.emerald,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  aiPromptBtnText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#052E16',
   },
   dividerRow: {
     flexDirection: 'row',
