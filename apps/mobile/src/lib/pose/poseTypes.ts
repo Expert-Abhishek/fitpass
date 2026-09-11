@@ -134,6 +134,8 @@ export interface ExerciseDetectorResult {
   targetAngle?: number;
   feedback: FormFeedback;
   isConfidenceLow: boolean;
+  isFormFault?: boolean;
+  faultReason?: string;
 }
 
 export interface ExerciseDefinition {

@@ -98,6 +98,35 @@ class AudioHapticController {
   }
 
   /**
+   * Play attention / warning chime on form correction hold
+   */
+  public playFormWarningChime() {
+    this.triggerHapticPulse(90);
+
+    try {
+      const ctx = this.getAudioContext();
+      if (!ctx) return;
+
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(320, now);
+      osc.frequency.linearRampToValueAtTime(240, now + 0.25);
+      gain.gain.setValueAtTime(0.3, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.28);
+    } catch (e) {
+      // Ignore
+    }
+  }
+
+  /**
    * Subtle vibration pulse
    */
   public triggerHapticPulse(durationMs: number = 35) {

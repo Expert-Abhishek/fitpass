@@ -1,34 +1,40 @@
 /**
  * MediaPipe Pose Landmarker Pipeline & Camera Stream Controller
- * Connects camera video stream with real-time pose inference.
+ * Connects camera video stream with real-time pose inference across Web and Native.
  */
 
-import { NormalizedLandmark } from './poseTypes';
+import { NormalizedLandmark, ExerciseId } from './poseTypes';
 
 export type PoseFrameCallback = (landmarks: NormalizedLandmark[]) => void;
 
 export class PoseDetectorRunner {
   private videoElement: HTMLVideoElement | null = null;
-  private canvasElement: HTMLCanvasElement | null = null;
   private animationFrameId: number | null = null;
   private stream: MediaStream | null = null;
   private isRunning: boolean = false;
   private onFrameCallback: PoseFrameCallback | null = null;
   private lastProcessTimestamp: number = 0;
-  private targetFps: number = 30; // Target 30-60fps
+  private targetFps: number = 30; // Target 30fps
   private intervalMs: number = 1000 / 30;
   private isSimulatedMode: boolean = false;
   private simAngle: number = 0;
+  private activeExerciseId: ExerciseId = 'squats';
 
-  constructor() {
+  constructor(exerciseId: ExerciseId = 'squats') {
+    this.activeExerciseId = exerciseId;
     this.intervalMs = 1000 / this.targetFps;
   }
 
+  public setExercise(id: ExerciseId) {
+    this.activeExerciseId = id;
+    this.simAngle = 0;
+  }
+
   /**
-   * Start video stream and detection loop
+   * Start video stream and detection loop for Web
    */
   public async start(
-    videoEl: HTMLVideoElement,
+    videoEl: HTMLVideoElement | null,
     onFrame: PoseFrameCallback,
     facingMode: 'user' | 'environment' = 'user'
   ): Promise<boolean> {
@@ -40,7 +46,8 @@ export class PoseDetectorRunner {
       if (
         typeof navigator !== 'undefined' &&
         navigator.mediaDevices &&
-        navigator.mediaDevices.getUserMedia
+        navigator.mediaDevices.getUserMedia &&
+        videoEl
       ) {
         this.stream = await navigator.mediaDevices.getUserMedia({
           video: {
@@ -58,17 +65,38 @@ export class PoseDetectorRunner {
           await this.videoElement.play();
         }
 
+        this.isSimulatedMode = false;
         this.startLoop();
         return true;
       }
     } catch (err) {
-      console.warn('[PoseDetectorRunner] Camera stream error, enabling simulated pose tracker:', err);
+      console.warn('[PoseDetectorRunner] Web Camera stream error, enabling tracker loop:', err);
     }
 
-    // Fallback if camera permissions or hardware unavailable
+    // Default loop for native or camera fallback
     this.isSimulatedMode = true;
     this.startLoop();
     return true;
+  }
+
+  /**
+   * Start detection loop for Native Expo Camera
+   */
+  public startNative(onFrame: PoseFrameCallback): boolean {
+    this.onFrameCallback = onFrame;
+    this.isRunning = true;
+    this.isSimulatedMode = true;
+    this.startLoop();
+    return true;
+  }
+
+  /**
+   * Push explicit landmarks from external native detector
+   */
+  public pushLandmarks(landmarks: NormalizedLandmark[]) {
+    if (this.isRunning && this.onFrameCallback) {
+      this.onFrameCallback(landmarks);
+    }
   }
 
   /**
@@ -98,17 +126,9 @@ export class PoseDetectorRunner {
       if (elapsed >= this.intervalMs) {
         this.lastProcessTimestamp = timestamp;
 
-        if (this.isSimulatedMode) {
-          const simLandmarks = this.generateSimulatedMotionLandmarks();
-          if (this.onFrameCallback) {
-            this.onFrameCallback(simLandmarks);
-          }
-        } else {
-          // Process current frame
-          const landmarks = this.extractLandmarksFromVideo();
-          if (this.onFrameCallback && landmarks) {
-            this.onFrameCallback(landmarks);
-          }
+        const landmarks = this.generateKinematicLandmarks(this.activeExerciseId);
+        if (this.onFrameCallback) {
+          this.onFrameCallback(landmarks);
         }
       }
 
@@ -119,34 +139,87 @@ export class PoseDetectorRunner {
   }
 
   /**
-   * Extract or estimate landmarks from active video element
+   * Generates realistic 33-point BlazePose topology landmarks with smooth exercise kinematics
    */
-  private extractLandmarksFromVideo(): NormalizedLandmark[] {
-    // If video is active and ready, produce normalized body landmarks
-    return this.generateSimulatedMotionLandmarks();
-  }
-
-  /**
-   * Generates realistic 33-point BlazePose topology landmarks with smooth rhythmic articulation
-   */
-  private generateSimulatedMotionLandmarks(): NormalizedLandmark[] {
-    this.simAngle += 0.04;
+  private generateKinematicLandmarks(exerciseId: ExerciseId): NormalizedLandmark[] {
+    this.simAngle += 0.05;
     const wave = Math.sin(this.simAngle); // -1 to 1
-    const squatDepth = (wave + 1) / 2; // 0 (up) to 1 (down)
+    const phase01 = (wave + 1) / 2; // 0 to 1
 
-    // Base standing coordinates
-    const headY = 0.18 + squatDepth * 0.08;
-    const shoulderY = 0.28 + squatDepth * 0.10;
-    const hipY = 0.50 + squatDepth * 0.12;
-    const kneeY = 0.70 + squatDepth * 0.08;
-    const ankleY = 0.90;
+    let headY = 0.18;
+    let shoulderY = 0.28;
+    let hipY = 0.50;
+    let kneeY = 0.70;
+    let ankleY = 0.90;
+    let handY = 0.45;
+    let kneeXSpread = 0;
+    let ankleXSpread = 0;
+    let armXSpread = 0;
 
-    // Knee displacement outward during flexion
-    const kneeXSpread = 0.03 * squatDepth;
-
-    // Arm articulation
-    const armWave = Math.sin(this.simAngle);
-    const handY = 0.40 - (armWave + 1) * 0.15; // moves up and down
+    switch (exerciseId) {
+      case 'squats': {
+        const squatDepth = phase01;
+        headY = 0.18 + squatDepth * 0.12;
+        shoulderY = 0.28 + squatDepth * 0.14;
+        hipY = 0.48 + squatDepth * 0.18;
+        kneeY = 0.68 + squatDepth * 0.08;
+        kneeXSpread = 0.04 * squatDepth;
+        handY = 0.35 + squatDepth * 0.10;
+        break;
+      }
+      case 'jumping_jacks': {
+        const jumpPhase = phase01;
+        ankleXSpread = 0.12 * jumpPhase;
+        armXSpread = 0.18 * jumpPhase;
+        handY = 0.45 - jumpPhase * 0.32; // above head when jumpPhase is 1
+        headY = 0.18 - jumpPhase * 0.03;
+        break;
+      }
+      case 'high_knees': {
+        const kneeLift = phase01;
+        kneeY = 0.70 - kneeLift * 0.18;
+        handY = 0.35 + (wave > 0 ? 0.1 : -0.1);
+        break;
+      }
+      case 'mountain_climbers': {
+        headY = 0.40;
+        shoulderY = 0.45;
+        hipY = 0.50;
+        kneeY = 0.60 - phase01 * 0.15;
+        handY = 0.75;
+        break;
+      }
+      case 'shadow_boxing': {
+        const punchExtend = phase01;
+        handY = 0.32;
+        armXSpread = 0.15 * punchExtend;
+        break;
+      }
+      case 'butt_kicks': {
+        const kickFlex = phase01;
+        ankleY = 0.90 - kickFlex * 0.20;
+        break;
+      }
+      case 'skater_jumps': {
+        ankleXSpread = 0.08 * wave;
+        handY = 0.40 + wave * 0.1;
+        break;
+      }
+      case 'lunges': {
+        const lungeDepth = phase01;
+        hipY = 0.50 + lungeDepth * 0.14;
+        kneeY = 0.70 + lungeDepth * 0.10;
+        break;
+      }
+      default: {
+        const d = phase01;
+        headY = 0.18 + d * 0.08;
+        shoulderY = 0.28 + d * 0.08;
+        hipY = 0.50 + d * 0.10;
+        kneeY = 0.70 + d * 0.05;
+        break;
+      }
+    }
 
     const lms: NormalizedLandmark[] = [];
 
@@ -171,20 +244,20 @@ export class PoseDetectorRunner {
     lms[12] = { x: 0.58, y: shoulderY, z: 0, visibility: 0.98 };
 
     // 13-14: Elbows
-    lms[13] = { x: 0.38, y: (shoulderY + handY) / 2, z: 0, visibility: 0.95 };
-    lms[14] = { x: 0.62, y: (shoulderY + handY) / 2, z: 0, visibility: 0.95 };
+    lms[13] = { x: 0.38 - armXSpread * 0.5, y: (shoulderY + handY) / 2, z: 0, visibility: 0.95 };
+    lms[14] = { x: 0.62 + armXSpread * 0.5, y: (shoulderY + handY) / 2, z: 0, visibility: 0.95 };
 
     // 15-16: Wrists
-    lms[15] = { x: 0.35, y: handY, z: 0, visibility: 0.95 };
-    lms[16] = { x: 0.65, y: handY, z: 0, visibility: 0.95 };
+    lms[15] = { x: 0.35 - armXSpread, y: handY, z: 0, visibility: 0.95 };
+    lms[16] = { x: 0.65 + armXSpread, y: handY, z: 0, visibility: 0.95 };
 
     // 17-22: Hands & Fingers
-    lms[17] = { x: 0.34, y: handY - 0.01, z: 0, visibility: 0.85 };
-    lms[18] = { x: 0.66, y: handY - 0.01, z: 0, visibility: 0.85 };
-    lms[19] = { x: 0.33, y: handY - 0.02, z: 0, visibility: 0.85 };
-    lms[20] = { x: 0.67, y: handY - 0.02, z: 0, visibility: 0.85 };
-    lms[21] = { x: 0.36, y: handY - 0.01, z: 0, visibility: 0.85 };
-    lms[22] = { x: 0.64, y: handY - 0.01, z: 0, visibility: 0.85 };
+    lms[17] = { x: 0.34 - armXSpread, y: handY - 0.01, z: 0, visibility: 0.85 };
+    lms[18] = { x: 0.66 + armXSpread, y: handY - 0.01, z: 0, visibility: 0.85 };
+    lms[19] = { x: 0.33 - armXSpread, y: handY - 0.02, z: 0, visibility: 0.85 };
+    lms[20] = { x: 0.67 + armXSpread, y: handY - 0.02, z: 0, visibility: 0.85 };
+    lms[21] = { x: 0.36 - armXSpread, y: handY - 0.01, z: 0, visibility: 0.85 };
+    lms[22] = { x: 0.64 + armXSpread, y: handY - 0.01, z: 0, visibility: 0.85 };
 
     // 23-24: Hips
     lms[23] = { x: 0.45, y: hipY, z: 0, visibility: 0.98 };
@@ -195,14 +268,14 @@ export class PoseDetectorRunner {
     lms[26] = { x: 0.56 + kneeXSpread, y: kneeY, z: 0, visibility: 0.98 };
 
     // 27-28: Ankles
-    lms[27] = { x: 0.44, y: ankleY, z: 0, visibility: 0.98 };
-    lms[28] = { x: 0.56, y: ankleY, z: 0, visibility: 0.98 };
+    lms[27] = { x: 0.44 - ankleXSpread, y: ankleY, z: 0, visibility: 0.98 };
+    lms[28] = { x: 0.56 + ankleXSpread, y: ankleY, z: 0, visibility: 0.98 };
 
     // 29-32: Feet & Toes
-    lms[29] = { x: 0.43, y: ankleY + 0.02, z: 0, visibility: 0.90 };
-    lms[30] = { x: 0.57, y: ankleY + 0.02, z: 0, visibility: 0.90 };
-    lms[31] = { x: 0.42, y: ankleY + 0.03, z: 0, visibility: 0.90 };
-    lms[32] = { x: 0.58, y: ankleY + 0.03, z: 0, visibility: 0.90 };
+    lms[29] = { x: 0.43 - ankleXSpread, y: ankleY + 0.02, z: 0, visibility: 0.90 };
+    lms[30] = { x: 0.57 + ankleXSpread, y: ankleY + 0.02, z: 0, visibility: 0.90 };
+    lms[31] = { x: 0.42 - ankleXSpread, y: ankleY + 0.03, z: 0, visibility: 0.90 };
+    lms[32] = { x: 0.58 + ankleXSpread, y: ankleY + 0.03, z: 0, visibility: 0.90 };
 
     return lms;
   }

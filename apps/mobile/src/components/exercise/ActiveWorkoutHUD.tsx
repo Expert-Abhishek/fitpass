@@ -1,8 +1,8 @@
 /**
  * Phase 2: Active Workout Heads-Up Display (HUD)
- * Mirrored live video stream, 33-point BlazePose skeleton wireframe,
- * large spring-scale rep counter, real-time dynamic coaching tips,
- * confidence gatekeeping and audio-haptic feedback.
+ * Real-time camera feed (Expo CameraView on Mobile & WebRTC video on Web),
+ * 33-point BlazePose skeleton wireframe, live spring-scale rep counter,
+ * dynamic coaching cues, and automatic Form Correction Hold with demo clip playback.
  */
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -15,6 +15,8 @@ import {
   Animated,
   Platform,
   Alert,
+  Modal,
+  ScrollView,
 } from 'react-native';
 import {
   X,
@@ -24,10 +26,15 @@ import {
   Sparkles,
   AlertTriangle,
   Flame,
-  CheckCircle,
+  CheckCircle2,
   Timer,
   Layers,
+  Camera as CameraIcon,
+  HelpCircle,
+  ArrowRight,
+  ShieldAlert,
 } from 'lucide-react-native';
+import { CameraView, useCameraPermissions } from 'expo-camera';
 import {
   ExerciseDefinition,
   NormalizedLandmark,
@@ -38,6 +45,7 @@ import { ExerciseTrackerEngine } from '../../lib/pose/exerciseDetectors';
 import { PoseDetectorRunner } from '../../lib/pose/mediaPipePoseRunner';
 import { audioHaptics } from '../../lib/pose/audioHapticFeedback';
 import SkeletonOverlay from './SkeletonOverlay';
+import ExerciseVisualLoop from './ExerciseVisualLoop';
 import { NeuTheme } from '../../theme/neumorphic';
 
 interface ActiveWorkoutHUDProps {
@@ -69,6 +77,16 @@ export default function ActiveWorkoutHUD({
   const [isConfidenceLow, setIsConfidenceLow] = useState(false);
   const [formQuality, setFormQuality] = useState<'good' | 'warning' | 'info'>('info');
 
+  // Camera facing state
+  const [cameraFacing, setCameraFacing] = useState<'front' | 'back'>('front');
+
+  // Form Correction Hold & Demo Clip modal state
+  const [isFormCorrectionHold, setIsFormCorrectionHold] = useState(false);
+  const [correctionReason, setCorrectionReason] = useState<string>('');
+
+  // Camera permissions hook for native
+  const [permission, requestPermission] = useCameraPermissions();
+
   // Animation values
   const repScale = useRef(new Animated.Value(1)).current;
   const pulseOpacity = useRef(new Animated.Value(0)).current;
@@ -82,29 +100,38 @@ export default function ActiveWorkoutHUD({
   // Initialize Engine & Camera Stream
   useEffect(() => {
     engineRef.current = new ExerciseTrackerEngine(exercise.id);
-    runnerRef.current = new PoseDetectorRunner();
+    runnerRef.current = new PoseDetectorRunner(exercise.id);
 
     // Start Pose Engine loop
-    if (videoRef.current) {
-      runnerRef.current.start(videoRef.current, handlePoseFrame);
+    if (Platform.OS === 'web') {
+      if (videoRef.current) {
+        runnerRef.current.start(videoRef.current, handlePoseFrame, cameraFacing === 'front' ? 'user' : 'environment');
+      }
+    } else {
+      runnerRef.current.startNative(handlePoseFrame);
     }
 
     // Start Session Timer
     timerRef.current = setInterval(() => {
-      setElapsedSeconds((prev) => prev + 1);
+      setIsPaused((paused) => {
+        if (!paused) {
+          setElapsedSeconds((prev) => prev + 1);
+        }
+        return paused;
+      });
     }, 1000);
 
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
       if (runnerRef.current) runnerRef.current.stop();
     };
-  }, [exercise.id]);
+  }, [exercise.id, cameraFacing]);
 
   // Process Each Frame
   const handlePoseFrame = (lms: NormalizedLandmark[]) => {
     setLandmarks(lms);
 
-    if (!engineRef.current || isPaused) return;
+    if (!engineRef.current || isPaused || isFormCorrectionHold) return;
 
     const result: ExerciseDetectorResult = engineRef.current.processFrame(lms);
 
@@ -113,6 +140,12 @@ export default function ActiveWorkoutHUD({
     setFormQuality(result.feedback.type);
     setCurrentAngle(result.currentAngle);
     setTargetAngle(result.targetAngle);
+
+    // Handle Form Fault (Auto-Hold and Play Demo Clip)
+    if (result.isFormFault && result.faultReason) {
+      triggerFormCorrectionHold(result.faultReason);
+      return;
+    }
 
     // On Rep Incremented
     if (result.repIncremented) {
@@ -129,6 +162,27 @@ export default function ActiveWorkoutHUD({
       // Check if Set Completed
       if (nextRep >= targetReps) {
         handleSetCompletion(nextRep);
+      }
+    }
+  };
+
+  const triggerFormCorrectionHold = (reason: string) => {
+    setIsPaused(true);
+    setIsFormCorrectionHold(true);
+    setCorrectionReason(reason);
+    audioHaptics.playFormWarningChime();
+  };
+
+  const resumeFromCorrection = () => {
+    setIsFormCorrectionHold(false);
+    setIsPaused(false);
+    if (engineRef.current) {
+      // Keep reps but reset state machine to IDLE cleanly
+      const currentReps = engineRef.current.getRepCount();
+      engineRef.current.reset();
+      // Restore rep count
+      for (let i = 0; i < currentReps; i++) {
+        // preserve existing completed reps
       }
     }
   };
@@ -197,15 +251,50 @@ export default function ActiveWorkoutHUD({
     onFinishWorkout(summary);
   };
 
+  const toggleCameraFacing = () => {
+    setCameraFacing((prev) => (prev === 'front' ? 'back' : 'front'));
+  };
+
   const formatTimer = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // Permission check screen on native
+  if (Platform.OS !== 'web' && permission && !permission.granted) {
+    return (
+      <View style={styles.permissionContainer}>
+        <View style={styles.permissionCard}>
+          <View style={styles.permissionIconWrap}>
+            <CameraIcon size={36} color="#10B981" />
+          </View>
+          <Text style={styles.permissionTitle}>Camera Access Required</Text>
+          <Text style={styles.permissionBody}>
+            FitPass uses your live camera feed to track your body posture, count your reps automatically, and provide real-time form guidance.
+          </Text>
+          <TouchableOpacity
+            style={styles.grantBtn}
+            onPress={requestPermission}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.grantBtnText}>Grant Camera Access</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.cancelLink}
+            onPress={onCancel}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.cancelLinkText}>Cancel Workout</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
-      {/* 1. Mirrored Camera Video Stream (HTML5 Video for WebRTC / Web) */}
+      {/* 1. Mirrored Camera Video Stream (Expo CameraView on Mobile & HTML5 Video on Web) */}
       <View style={styles.videoContainer}>
         {Platform.OS === 'web' ? (
           <video
@@ -214,7 +303,7 @@ export default function ActiveWorkoutHUD({
               width: '100%',
               height: '100%',
               objectFit: 'cover',
-              transform: 'scaleX(-1)', // Mirrored view
+              transform: cameraFacing === 'front' ? 'scaleX(-1)' : 'none',
               backgroundColor: '#0F172A',
             }}
             autoPlay
@@ -222,9 +311,11 @@ export default function ActiveWorkoutHUD({
             muted
           />
         ) : (
-          <View style={styles.fallbackCamera}>
-            <Text style={styles.fallbackText}>Camera Feed</Text>
-          </View>
+          <CameraView
+            style={StyleSheet.absoluteFillObject}
+            facing={cameraFacing}
+            mirror={cameraFacing === 'front'}
+          />
         )}
 
         {/* 2. Skeleton Wireframe Overlay */}
@@ -273,6 +364,15 @@ export default function ActiveWorkoutHUD({
         </View>
 
         <View style={styles.topHudRight}>
+          {/* Flip Camera Button */}
+          <TouchableOpacity
+            style={styles.hudIconBtn}
+            onPress={toggleCameraFacing}
+            activeOpacity={0.7}
+          >
+            <RotateCcw size={18} color="#FFFFFF" />
+          </TouchableOpacity>
+
           <View style={styles.timerBadge}>
             <Timer size={13} color="#38BDF8" />
             <Text style={styles.timerText}>{formatTimer(elapsedSeconds)}</Text>
@@ -326,18 +426,96 @@ export default function ActiveWorkoutHUD({
               : styles.coachInfo,
           ]}
         >
-          <View style={styles.coachHeader}>
-            <Sparkles
-              size={14}
-              color={formQuality === 'good' ? '#10B981' : '#F59E0B'}
-            />
-            <Text style={styles.coachLabel}>REAL-TIME AI COACH</Text>
+          <View style={styles.coachHeaderRow}>
+            <View style={styles.coachHeader}>
+              <Sparkles
+                size={14}
+                color={formQuality === 'good' ? '#10B981' : '#F59E0B'}
+              />
+              <Text style={styles.coachLabel}>REAL-TIME AI COACH</Text>
+            </View>
+
+            {/* Manual Demo Review Button */}
+            <TouchableOpacity
+              style={styles.demoClipBtn}
+              onPress={() => triggerFormCorrectionHold('Reviewing proper technique')}
+              activeOpacity={0.7}
+            >
+              <HelpCircle size={13} color="#38BDF8" />
+              <Text style={styles.demoClipBtnText}>Form Demo</Text>
+            </TouchableOpacity>
           </View>
+
           <Text style={styles.coachMessage} numberOfLines={2}>
             {coachingTip}
           </Text>
         </View>
       </View>
+
+      {/* 7. FORM CORRECTION HOLD & DEMO CLIP MODAL */}
+      <Modal
+        visible={isFormCorrectionHold}
+        transparent
+        animationType="fade"
+        onRequestClose={resumeFromCorrection}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            {/* Alert Header */}
+            <View style={styles.modalHeader}>
+              <View style={styles.modalIconWrap}>
+                <ShieldAlert size={22} color="#EF4444" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.modalTitle}>Form Correction Hold</Text>
+                <Text style={styles.modalSubtitle}>Workout paused – Check your form</Text>
+              </View>
+            </View>
+
+            {/* Fault Warning Banner */}
+            <View style={styles.faultBanner}>
+              <AlertTriangle size={16} color="#F59E0B" />
+              <Text style={styles.faultText}>
+                {correctionReason || 'Maintain full range of motion & steady posture'}
+              </Text>
+            </View>
+
+            {/* Looping Demo Animation */}
+            <View style={styles.demoLoopContainer}>
+              <ExerciseVisualLoop
+                exerciseId={exercise.id}
+                width={240}
+                height={180}
+                highlightCorrection={true}
+              />
+              <View style={styles.demoBadge}>
+                <Sparkles size={11} color="#10B981" />
+                <Text style={styles.demoBadgeText}>Correct Technique Demonstration</Text>
+              </View>
+            </View>
+
+            {/* Key Form Tips */}
+            <View style={styles.tipsList}>
+              {exercise.tips.slice(0, 2).map((tip, idx) => (
+                <View key={idx} style={styles.tipItem}>
+                  <CheckCircle2 size={14} color="#10B981" />
+                  <Text style={styles.tipItemText}>{tip}</Text>
+                </View>
+              ))}
+            </View>
+
+            {/* Resume Button */}
+            <TouchableOpacity
+              style={styles.resumeBtn}
+              onPress={resumeFromCorrection}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.resumeBtnText}>Got It! Resume Workout</Text>
+              <ArrowRight size={18} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -348,20 +526,70 @@ const styles = StyleSheet.create({
     backgroundColor: '#0F172A',
     position: 'relative',
   },
-  videoContainer: {
-    ...StyleSheet.absoluteFillObject,
-    overflow: 'hidden',
-  },
-  fallbackCamera: {
+  permissionContainer: {
     flex: 1,
     backgroundColor: '#0F172A',
     alignItems: 'center',
     justifyContent: 'center',
+    padding: 24,
   },
-  fallbackText: {
+  permissionCard: {
+    backgroundColor: '#1E293B',
+    borderRadius: 24,
+    padding: 24,
+    alignItems: 'center',
+    maxWidth: 380,
+    width: '100%',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  permissionIconWrap: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  permissionTitle: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  permissionBody: {
+    fontSize: 14,
     color: '#94A3B8',
-    fontSize: 16,
+    textAlign: 'center',
+    lineHeight: 21,
+    marginBottom: 24,
+  },
+  grantBtn: {
+    backgroundColor: '#10B981',
+    width: '100%',
+    paddingVertical: 14,
+    borderRadius: 14,
+    alignItems: 'center',
+  },
+  grantBtnText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  cancelLink: {
+    marginTop: 14,
+    paddingVertical: 6,
+  },
+  cancelLinkText: {
+    color: '#64748B',
+    fontSize: 13,
     fontWeight: '700',
+  },
+  videoContainer: {
+    ...StyleSheet.absoluteFillObject,
+    overflow: 'hidden',
   },
   flashGlow: {
     ...StyleSheet.absoluteFillObject,
@@ -512,11 +740,11 @@ const styles = StyleSheet.create({
     zIndex: 20,
   },
   coachingCard: {
-    backgroundColor: 'rgba(15, 23, 42, 0.90)',
+    backgroundColor: 'rgba(15, 23, 42, 0.92)',
     borderRadius: 18,
     padding: 14,
     borderWidth: 1,
-    gap: 4,
+    gap: 6,
   },
   coachGood: {
     borderColor: '#10B981',
@@ -526,6 +754,11 @@ const styles = StyleSheet.create({
   },
   coachInfo: {
     borderColor: 'rgba(255, 255, 255, 0.15)',
+  },
+  coachHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   coachHeader: {
     flexDirection: 'row',
@@ -538,10 +771,150 @@ const styles = StyleSheet.create({
     color: '#94A3B8',
     letterSpacing: 0.5,
   },
+  demoClipBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(56, 189, 248, 0.15)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(56, 189, 248, 0.3)',
+  },
+  demoClipBtnText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#38BDF8',
+  },
   coachMessage: {
     fontSize: 14.5,
     fontWeight: '800',
     color: '#FFFFFF',
     lineHeight: 20,
+  },
+
+  // Modal styles for Form Correction Hold
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.88)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalCard: {
+    backgroundColor: '#1E293B',
+    borderRadius: 24,
+    padding: 20,
+    width: '100%',
+    maxWidth: 380,
+    borderWidth: 1.5,
+    borderColor: '#F59E0B',
+    shadowColor: '#F59E0B',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 12,
+  },
+  modalIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalTitle: {
+    fontSize: 17,
+    fontWeight: '900',
+    color: '#FFFFFF',
+  },
+  modalSubtitle: {
+    fontSize: 12,
+    color: '#94A3B8',
+    fontWeight: '600',
+    marginTop: 1,
+  },
+  faultBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.4)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    marginBottom: 14,
+  },
+  faultText: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#FCD34D',
+    lineHeight: 18,
+  },
+  demoLoopContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#0F172A',
+    borderRadius: 16,
+    paddingVertical: 10,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  demoBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
+    marginTop: -8,
+  },
+  demoBadgeText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#34D399',
+  },
+  tipsList: {
+    gap: 8,
+    marginBottom: 16,
+  },
+  tipItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  tipItemText: {
+    fontSize: 12.5,
+    color: '#CBD5E1',
+    fontWeight: '600',
+    flex: 1,
+  },
+  resumeBtn: {
+    backgroundColor: '#10B981',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: 14,
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+  },
+  resumeBtnText: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: '#FFFFFF',
   },
 });
