@@ -29,12 +29,11 @@ import {
   CheckCircle2,
   Timer,
   Layers,
-  Camera as CameraIcon,
   HelpCircle,
   ArrowRight,
   ShieldAlert,
 } from 'lucide-react-native';
-import { CameraView, useCameraPermissions } from 'expo-camera';
+import CameraFeedView, { CameraFeedRef } from './CameraFeedView';
 import {
   ExerciseDefinition,
   NormalizedLandmark,
@@ -84,8 +83,8 @@ export default function ActiveWorkoutHUD({
   const [isFormCorrectionHold, setIsFormCorrectionHold] = useState(false);
   const [correctionReason, setCorrectionReason] = useState<string>('');
 
-  // Camera permissions hook for native
-  const [permission, requestPermission] = useCameraPermissions();
+  // Camera feed ref
+  const cameraFeedRef = useRef<CameraFeedRef | null>(null);
 
   // Animation values
   const repScale = useRef(new Animated.Value(1)).current;
@@ -261,62 +260,19 @@ export default function ActiveWorkoutHUD({
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Permission check screen on native
-  if (Platform.OS !== 'web' && permission && !permission.granted) {
-    return (
-      <View style={styles.permissionContainer}>
-        <View style={styles.permissionCard}>
-          <View style={styles.permissionIconWrap}>
-            <CameraIcon size={36} color="#10B981" />
-          </View>
-          <Text style={styles.permissionTitle}>Camera Access Required</Text>
-          <Text style={styles.permissionBody}>
-            FitPass uses your live camera feed to track your body posture, count your reps automatically, and provide real-time form guidance.
-          </Text>
-          <TouchableOpacity
-            style={styles.grantBtn}
-            onPress={requestPermission}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.grantBtnText}>Grant Camera Access</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.cancelLink}
-            onPress={onCancel}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.cancelLinkText}>Cancel Workout</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    );
-  }
-
   return (
     <View style={styles.container}>
       {/* 1. Mirrored Camera Video Stream (Expo CameraView on Mobile & HTML5 Video on Web) */}
       <View style={styles.videoContainer}>
-        {Platform.OS === 'web' ? (
-          <video
-            ref={videoRef as any}
-            style={{
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-              transform: cameraFacing === 'front' ? 'scaleX(-1)' : 'none',
-              backgroundColor: '#0F172A',
-            }}
-            autoPlay
-            playsInline
-            muted
-          />
-        ) : (
-          <CameraView
-            style={StyleSheet.absoluteFillObject}
-            facing={cameraFacing}
-            mirror={cameraFacing === 'front'}
-          />
-        )}
+        <CameraFeedView
+          ref={cameraFeedRef}
+          facing={cameraFacing}
+          onStreamReady={(videoEl) => {
+            if (runnerRef.current && videoEl) {
+              runnerRef.current.start(videoEl, handlePoseFrame, cameraFacing === 'front' ? 'user' : 'environment');
+            }
+          }}
+        />
 
         {/* 2. Skeleton Wireframe Overlay */}
         <SkeletonOverlay
